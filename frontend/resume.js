@@ -4,6 +4,7 @@ const uploadZone = document.getElementById("uploadZone");
 const uploadTitle = document.getElementById("uploadTitle");
 const uploadButton = document.getElementById("uploadButton");
 const resumeMessage = document.getElementById("resumeMessage");
+const selectedRole = new URLSearchParams(window.location.search).get("role") || "";
 
 function showSelectedFile() {
     const file = resumeFile.files[0];
@@ -55,6 +56,7 @@ resumeForm.addEventListener("submit", async function(event) {
     try {
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("selected_role", selectedRole);
         const response = await fetch("/api/interview/resume", { method: "POST", body: formData });
         const data = await response.json();
 

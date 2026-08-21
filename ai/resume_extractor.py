@@ -1,16 +1,30 @@
 """
+ai/resume_extractor.py
+
 Step 1: Resume parsing.
 - extract_text_from_pdf(): pulls raw text out of a resume PDF
 - structure_resume(): sends raw text to Groq (Llama), gets back clean structured JSON
+
+Reads GROQ_API_KEY from a .env file at the project root (project/.env).
 """
 
 import json
 import os
 
 import pdfplumber
+from dotenv import load_dotenv
 from groq import Groq
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+load_dotenv()  # looks for .env in the current working directory (project root)
+
+api_key = os.environ.get("GROQ_API_KEY")
+if not api_key:
+    raise RuntimeError(
+        "GROQ_API_KEY not found. Make sure a .env file exists at your project root "
+        "with the line: GROQ_API_KEY=your_key_here"
+    )
+
+client = Groq(api_key=api_key)
 
 STRUCTURE_PROMPT = """You are a resume parser. Given raw resume text, extract structured
 information and return ONLY valid JSON (no markdown fences, no preamble, no commentary).
@@ -78,7 +92,7 @@ def structure_resume(resume_text: str) -> dict:
     prompt = STRUCTURE_PROMPT.replace("{resume_text}", resume_text)
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="openai/gpt-oss-120b",
         max_tokens=2000,
         temperature=0,
         response_format={"type": "json_object"},  # Groq enforces valid JSON output

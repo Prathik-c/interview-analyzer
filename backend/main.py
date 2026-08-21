@@ -1,8 +1,10 @@
+import json
+import shutil
+import tempfile
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,6 +13,7 @@ from pydantic import BaseModel, Field
 app = FastAPI()
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
 load_dotenv(frontend_dir.parent / ".env")
+resume_data_path = frontend_dir.parent / "resume_data.json"
 
 app.mount("/assets", StaticFiles(directory=frontend_dir), name="frontend-assets")
 
@@ -45,11 +48,15 @@ async def start_interview(request: InterviewStartRequest):
 
 
 @app.post("/api/interview/resume")
-async def upload_resume(file: UploadFile = File(...)):
+@app.post("/parse-resume")
+async def upload_resume(
+    file: UploadFile = File(...),
+    selected_role: str = Form(...)
+):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Please upload a PDF resume.")
-
-    from ai.resume_extractor import parse_resume
+    if not selected_role.strip():
+        raise HTTPException(status_code=400, detail="A selected job role is required.")
 
     file_contents = await file.read()
     if not file_contents:
@@ -57,7 +64,9 @@ async def upload_resume(file: UploadFile = File(...)):
 
     temporary_path = None
     try:
-        with NamedTemporaryFile(suffix=".pdf", delete=False) as temporary_file:
+        from ai.resume_extractor import parse_resume
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temporary_file:
             temporary_file.write(file_contents)
             temporary_path = temporary_file.name
 
@@ -70,10 +79,21 @@ async def upload_resume(file: UploadFile = File(...)):
         if temporary_path:
             Path(temporary_path).unlink(missing_ok=True)
 
+    saved_resume = {
+        "selected_role": selected_role.strip(),
+        "filename": file.filename,
+        "content_type": file.content_type,
+        "size": len(file_contents),
+        "resume": extracted_resume
+    }
+    resume_data_path.write_text(json.dumps(saved_resume, indent=2), encoding="utf-8")
+
     return {
-        "message": "Resume received",
+        "message": "Resume extracted and saved",
         "filename": file.filename,
         "accepted": True,
+        "selected_role": saved_resume["selected_role"],
         "extracted_terms": extracted_resume.get("skills", []),
         "resume_data": extracted_resume
     }
+
