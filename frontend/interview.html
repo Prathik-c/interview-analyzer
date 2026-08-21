@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar">
+            <a class="brand" href="#" aria-label="Interview Studio home">
+                <span class="brand-mark">IS</span>
+                <span>Interview Studio</span>
+            </a>
+            <span class="step-label"><span class="status-dot"></span>Step 1 of 3</span>
+        </header>
+
+        <main class="main-content">
+            <section class="intro" aria-labelledby="page-title">
+                <p class="eyebrow">Build your next opportunity</p>
+                <h1 id="page-title">Practice with purpose.</h1>
+                <p class="intro-copy">Choose a role and we’ll shape an interview session around the skills that matter most.</p>
+            </section>
+
+            <section class="selection-panel" aria-labelledby="role-heading">
+                <div class="panel-heading">
+                    <div>
+                        <p class="section-kicker">Your focus</p>
+                        <h2 id="role-heading">What role are you preparing for?</h2>
+                    </div>
+                    <span class="required-label">Required</span>
+                </div>
+
+                <label class="search-field" for="jobTitleInput">
+                    <span class="search-icon" aria-hidden="true">⌕</span>
+                    <input type="text" placeholder="Search job roles" id="jobTitleInput" autocomplete="off">
+                    <span class="shortcut">⌘ K</span>
+                </label>
+                <div id="jobResults" class="job-results" aria-live="polite"></div>
+                <p id="emptyState" class="empty-state" hidden>No matching roles yet. Try a broader search.</p>
+
+                <div class="panel-footer">
+                    <p id="selectionHint" class="selection-hint">Select a role to continue</p>
+                    <button id="continueButton" class="continue-button" type="button" disabled>
+                        Continue <span aria-hidden="true">&#8594;</span>
+                    </button>
+                </div>
+                <p id="connectionMessage" class="connection-message" role="status" aria-live="polite"></p>
+            </section>
+        </main>
+
+        <footer class="footer"><span>Interview Studio</span><span>Thoughtful practice, sharper answers.</span></footer>
+    </div>
+    <script src="/assets/script.js"></script>
+</body>
+</html>
