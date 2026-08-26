@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview results | Interview Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+    <div class="page-shell results-page">
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="Interview Studio home"><span class="brand-mark">IS</span><span>Interview Studio</span></a>
+            <span class="step-label"><span class="status-dot"></span>Results</span>
+        </header>
+        <main class="main-content">
+            <section class="intro" aria-labelledby="results-title">
+                <p class="eyebrow">Interview complete</p>
+                <h1 id="results-title">Here is your readout.</h1>
+                <p id="roleCopy" class="intro-copy">Loading your results...</p>
+            </section>
+            <section id="resultsContent" class="selection-panel results-panel" hidden>
+                <div class="score-block"><span id="scoreValue">-</span><span>/ 10 overall</span></div>
+                <p id="summary" class="result-summary"></p>
+                <div class="result-columns"><div><h2>Strengths</h2><ul id="strengths"></ul></div><div><h2>Gaps to work on</h2><ul id="gaps"></ul></div></div>
+                <div><h2>Question feedback</h2><div id="questionFeedback" class="feedback-list"></div></div>
+                <a class="continue-button back-button" href="/">Choose another role <span aria-hidden="true">&#8592;</span></a>
+            </section>
+            <p id="resultsMessage" class="connection-message" role="status" aria-live="polite"></p>
+        </main>
+        <footer class="footer"><span>Interview Studio</span><span>Thoughtful practice, sharper answers.</span></footer>
+    </div>
+    <script src="/assets/results.js"></script>
+</body>
+</html>

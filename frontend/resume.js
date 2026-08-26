@@ -66,6 +66,7 @@ resumeForm.addEventListener("submit", async function(event) {
 
         resumeMessage.classList.add("success");
         resumeMessage.textContent = `${data.filename} is ready for your interview.`;
+        window.location.href = `/interview?session_id=${encodeURIComponent(data.session_id)}`;
     } catch (error) {
         resumeMessage.classList.add("error");
         resumeMessage.textContent = error.message;

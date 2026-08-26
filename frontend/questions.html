@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your interview | Interview Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+    <div class="page-shell questions-page">
+        <header class="topbar">
+            <a class="brand" href="/" aria-label="Interview Studio home">
+                <span class="brand-mark">IS</span>
+                <span>Interview Studio</span>
+            </a>
+            <span class="step-label"><span class="status-dot"></span>Step 3 of 3</span>
+        </header>
+
+        <main class="main-content">
+            <section class="intro" aria-labelledby="interview-title">
+                <p class="eyebrow">Your practice session</p>
+                <h1 id="interview-title">Show your thinking.</h1>
+                <p id="roleCopy" class="intro-copy">Loading your questions...</p>
+            </section>
+
+            <section class="selection-panel questions-panel" aria-labelledby="questions-heading">
+                <div class="panel-heading">
+                    <div>
+                        <p class="section-kicker">Interview questions</p>
+                        <h2 id="questions-heading">Take them one at a time.</h2>
+                    </div>
+                    <span id="progressLabel" class="required-label">0 answered</span>
+                </div>
+                <form id="questionsForm" class="questions-list"></form>
+                <button id="finishButton" class="continue-button finish-button" type="button" disabled>
+                    Finish interview <span aria-hidden="true">&#8594;</span>
+                </button>
+                <p id="questionsMessage" class="connection-message" role="status" aria-live="polite"></p>
+            </section>
+        </main>
+
+        <footer class="footer"><span>Interview Studio</span><span>Thoughtful practice, sharper answers.</span></footer>
+    </div>
+    <script src="/assets/questions.js"></script>
+</body>
+</html>
