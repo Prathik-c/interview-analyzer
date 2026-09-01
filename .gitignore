@@ -1,16 +1,19 @@
-.env
-# Runtime/generated data
-data/
-uploads/
-*.webm
-*.wav
-*.mp4
-*.pdf
+# Runtime generated interview data
+data/sessions/
+uploads/recordings/
 
-# Python
-__pycache__/
-*.pyc
+# Uploaded resumes
+uploads/resumes/
 
-# Environment
+# Local database
+*.db
+
+# Environment secrets
 .env
+
+# Virtual environment
 venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
