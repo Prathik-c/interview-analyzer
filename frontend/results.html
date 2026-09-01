@@ -3,34 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interview results | Interview Studio</title>
+    <title>Multimodal Interview Performance Report</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-    <div class="page-shell results-page">
+    <div class="page-shell">
         <header class="topbar">
-            <a class="brand" href="/" aria-label="Interview Studio home"><span class="brand-mark">IS</span><span>Interview Studio</span></a>
-            <span class="step-label"><span class="status-dot"></span>Results</span>
+            <a class="brand" href="/">
+                <span class="brand-mark">IS</span>
+                <span>Interview Studio</span>
+            </a>
+            <span class="step-label"><span class="status-dot"></span>Performance Assessment</span>
         </header>
-        <main class="main-content">
-            <section class="intro" aria-labelledby="results-title">
-                <p class="eyebrow">Interview complete</p>
-                <h1 id="results-title">Here is your readout.</h1>
-                <p id="roleCopy" class="intro-copy">Loading your results...</p>
-            </section>
-            <section id="resultsContent" class="selection-panel results-panel" hidden>
-                <div class="score-block"><span id="scoreValue">-</span><span>/ 10 overall</span></div>
-                <p id="summary" class="result-summary"></p>
-                <div class="result-columns"><div><h2>Strengths</h2><ul id="strengths"></ul></div><div><h2>Gaps to work on</h2><ul id="gaps"></ul></div></div>
-                <div><h2>Question feedback</h2><div id="questionFeedback" class="feedback-list"></div></div>
-                <a class="continue-button back-button" href="/">Choose another role <span aria-hidden="true">&#8592;</span></a>
-            </section>
-            <p id="resultsMessage" class="connection-message" role="status" aria-live="polite"></p>
+
+        <main style="padding-top: 36px;">
+            <div id="errorMessage" style="color: var(--status-red); font-weight: 600; min-height: 20px;"></div>
+
+            <div id="resultsContainer" hidden>
+                <div class="results-header card">
+                    <div class="score-gauge-card card">
+                        <div class="score-number" id="overallScoreVal">0</div>
+                        <div class="score-label">OVERALL MULTIMODAL SCORE</div>
+                    </div>
+
+                    <div>
+                        <p class="eyebrow">INTERVIEW PERFORMANCE REPORT</p>
+                        <h1 id="roleTitle" style="font-size: 32px; margin-bottom: 12px;">Candidate Readout</h1>
+                        <p id="summaryText" class="intro-copy" style="font-size: 16px; margin-bottom: 0;">Generating summary...</p>
+                    </div>
+                </div>
+
+                <!-- 3-Column Metric Breakdown Cards -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span style="font-weight: 600; font-size: 14px;">ANSWER QUALITY</span>
+                            <span class="badge">50% WEIGHT</span>
+                        </div>
+                        <div class="metric-val" id="nlpScoreVal">0%</div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Groq NLP technical relevance & depth</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span style="font-weight: 600; font-size: 14px;">SPEECH DELIVERY</span>
+                            <span class="badge">25% WEIGHT</span>
+                        </div>
+                        <div class="metric-val" id="speechScoreVal">0%</div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">WPM pacing & filler word frequency</p>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span style="font-weight: 600; font-size: 14px;">VIDEO PRESENTATION</span>
+                            <span class="badge">25% WEIGHT</span>
+                        </div>
+                        <div class="metric-val" id="videoScoreVal">0%</div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Face presence, attention & posture alignment</p>
+                    </div>
+                </div>
+
+                <!-- Strengths & Gaps -->
+                <div class="feedback-grid">
+                    <div class="card feedback-card">
+                        <h3 style="font-family: var(--font-heading); font-size: 20px; color: var(--status-green);">Key Strengths</h3>
+                        <ul class="feedback-list" id="strengthsList"></ul>
+                    </div>
+
+                    <div class="card feedback-card gaps">
+                        <h3 style="font-family: var(--font-heading); font-size: 20px; color: var(--status-amber);">Areas for Improvement</h3>
+                        <ul class="feedback-list" id="gapsList"></ul>
+                    </div>
+                </div>
+
+                <!-- Per-Question Analysis -->
+                <div class="card">
+                    <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 8px;">Per-Question Multimodal Breakdown</h3>
+                    <p style="color: var(--text-muted); font-size: 14px;">Detailed technical feedback, speech metrics, and video posture analysis for each question.</p>
+                    <div class="question-breakdown-list" id="questionBreakdownList"></div>
+                </div>
+
+                <div style="margin-top: 36px; display: flex; justify-content: center;">
+                    <a href="/" class="btn btn-secondary">
+                        ← Practice Another Role
+                    </a>
+                </div>
+            </div>
         </main>
-        <footer class="footer"><span>Interview Studio</span><span>Thoughtful practice, sharper answers.</span></footer>
+
+        <footer class="footer">
+            <span>Interview Studio &copy; 2026</span>
+            <span>Multimodal Performance Analyser</span>
+        </footer>
     </div>
-    <script src="/assets/results.js"></script>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/ui.js"></script>
+    <script src="/assets/js/results.js"></script>
 </body>
 </html>

@@ -3,58 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interview Studio</title>
+    <title>Live AI Interview Session</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
     <div class="page-shell">
         <header class="topbar">
-            <a class="brand" href="#" aria-label="Interview Studio home">
+            <a class="brand" href="/">
                 <span class="brand-mark">IS</span>
                 <span>Interview Studio</span>
             </a>
-            <span class="step-label"><span class="status-dot"></span>Step 1 of 3</span>
+            <span class="step-label"><span class="status-dot"></span>Live Multimodal Session</span>
         </header>
 
-        <main class="main-content">
-            <section class="intro" aria-labelledby="page-title">
-                <p class="eyebrow">Build your next opportunity</p>
-                <h1 id="page-title">Practice with purpose.</h1>
-                <p class="intro-copy">Choose a role and we’ll shape an interview session around the skills that matter most.</p>
-            </section>
+        <main style="padding-top: 24px;">
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
 
-            <section class="selection-panel" aria-labelledby="role-heading">
-                <div class="panel-heading">
-                    <div>
-                        <p class="section-kicker">Your focus</p>
-                        <h2 id="role-heading">What role are you preparing for?</h2>
+            <div class="interview-layout">
+                <!-- Left: Live Webcam & Video Recorder -->
+                <div>
+                    <div class="webcam-card">
+                        <video id="webcamVideo" class="webcam-video" autoplay playsinline muted></video>
+                        <div class="recording-badge" id="recordingBadge" hidden>
+                            <span class="rec-dot"></span>
+                            <span>REC</span>
+                            <span class="timer-label" id="recordingTimer">00:00</span>
+                        </div>
                     </div>
-                    <span class="required-label">Required</span>
+
+                    <div class="camera-controls">
+                        <button type="button" id="startRecordBtn" class="btn btn-primary" style="flex: 1;">
+                            🎥 Start Answer (Record Video)
+                        </button>
+                        <button type="button" id="stopRecordBtn" class="btn btn-secondary" style="flex: 1;" hidden>
+                            ⏹ Finish Answer & Process
+                        </button>
+                    </div>
+
+                    <div id="statusMessage" style="margin-top: 14px; font-size: 13px; color: var(--accent-cyan); min-height: 20px;"></div>
                 </div>
 
-                <label class="search-field" for="jobTitleInput">
-                    <span class="search-icon" aria-hidden="true">⌕</span>
-                    <input type="text" placeholder="Search job roles" id="jobTitleInput" autocomplete="off">
-                    <span class="shortcut">⌘ K</span>
-                </label>
-                <div id="jobResults" class="job-results" aria-live="polite"></div>
-                <p id="emptyState" class="empty-state" hidden>No matching roles yet. Try a broader search.</p>
+                <!-- Right: Question Stepper & Answers -->
+                <div class="card question-panel" id="questionCard">
+                    <div>
+                        <div class="question-header">
+                            <span class="badge" id="questionTopic">Technical</span>
+                            <span style="color: var(--text-muted); font-size: 13px;" id="questionNumber">Question 1 of 5</span>
+                        </div>
 
-                <div class="panel-footer">
-                    <p id="selectionHint" class="selection-hint">Select a role to continue</p>
-                    <button id="continueButton" class="continue-button" type="button" disabled>
-                        Continue <span aria-hidden="true">&#8594;</span>
-                    </button>
+                        <h3 class="question-title" id="questionText">Loading interview question...</h3>
+
+                        <div id="transcriptBox" class="transcript-box" hidden></div>
+
+                        <div style="margin-top: 20px;">
+                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">TEXT BACKUP ANSWER (OPTIONAL):</label>
+                            <textarea id="textAnswerInput" style="width: 100%; min-height: 90px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); padding: 12px; font-family: var(--font-sans); outline: none;" placeholder="Or type your response here..."></textarea>
+                            <button type="button" id="saveTextBtn" class="btn btn-secondary" style="margin-top: 8px; width: 100%;">Save Text Answer</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <button type="button" id="prevQuestionBtn" class="btn btn-secondary">← Previous</button>
+                        <button type="button" id="nextQuestionBtn" class="btn btn-secondary">Next Question →</button>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <button type="button" id="finishInterviewBtn" class="btn btn-primary" style="width: 100%;" disabled>
+                            Complete & Finish Interview →
+                        </button>
+                    </div>
                 </div>
-                <p id="connectionMessage" class="connection-message" role="status" aria-live="polite"></p>
-            </section>
+            </div>
         </main>
-
-        <footer class="footer"><span>Interview Studio</span><span>Thoughtful practice, sharper answers.</span></footer>
     </div>
-    <script src="/assets/script.js"></script>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/state.js"></script>
+    <script src="/assets/js/ui.js"></script>
+    <script src="/assets/js/camera.js"></script>
+    <script src="/assets/js/interview.js"></script>
 </body>
 </html>

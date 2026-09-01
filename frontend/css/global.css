@@ -1,0 +1,114 @@
+:root {
+    --bg-main: #0B0F17;
+    --bg-surface: #131A26;
+    --bg-surface-hover: #1C2638;
+    --bg-card: rgba(23, 32, 48, 0.75);
+    
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-color-glow: rgba(0, 242, 254, 0.3);
+
+    --text-primary: #F3F4F6;
+    --text-secondary: #9CA3AF;
+    --text-muted: #6B7280;
+
+    --accent-cyan: #00F2FE;
+    --accent-blue: #4FACFE;
+    --accent-gradient: linear-gradient(135deg, #00F2FE 0%, #4FACFE 100%);
+
+    --status-green: #10B981;
+    --status-amber: #F59E0B;
+    --status-red: #EF4444;
+
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-full: 9999px;
+
+    --shadow-card: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 25px rgba(0, 242, 254, 0.2);
+
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Outfit', 'Space Grotesk', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    line-height: 1.6;
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.06), transparent 40%),
+        radial-gradient(circle at 85% 75%, rgba(79, 172, 254, 0.06), transparent 40%);
+}
+
+.page-shell {
+    width: min(1200px, calc(100% - 48px));
+    margin: 0 auto;
+    padding-bottom: 60px;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.brand-mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-gradient);
+    color: #000;
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.step-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 24px 0;
+    margin-top: 60px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 13px;
+}

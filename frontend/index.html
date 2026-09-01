@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Multimodal Interview Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <style>
+        .auth-bar { display: flex; align-items: center; gap: 12px; }
+        .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .auth-modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .auth-card { background: var(--bg-card, #111827); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; width: 100%; max-width: 420px; padding: 28px; color: #fff; }
+        .auth-tabs { display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .auth-tab { cursor: pointer; opacity: 0.6; font-weight: 600; font-size: 15px; }
+        .auth-tab.active { opacity: 1; color: var(--accent-cyan, #06b6d4); border-bottom: 2px solid var(--accent-cyan, #06b6d4); padding-bottom: 8px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--text-muted, #9ca3af); }
+        .form-group input { width: 100%; background: #1f2937; border: 1px solid #374151; border-radius: 6px; padding: 10px 14px; color: #fff; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar">
+            <a class="brand" href="/">
+                <span class="brand-mark">IS</span>
+                <span>Interview Studio</span>
+            </a>
+            <div class="auth-bar">
+                <span id="userInfo" style="font-size: 13px; color: var(--accent-cyan); font-weight: 500;"></span>
+                <button id="authBtn" class="btn btn-secondary" style="padding: 6px 14px; font-size: 13px;">Login / Register</button>
+            </div>
+        </header>
+
+        <main style="padding-top: 40px;">
+            <section class="intro">
+                <p class="eyebrow">AI-Powered Multimodal Career Platform</p>
+                <h1>Practice smarter.<br>Elevate your delivery.</h1>
+                <p class="intro-copy">Choose your target role and upload your resume to experience an adaptive AI interview with real-time posture, speech pacing, and Groq NLP evaluation.</p>
+            </section>
+
+            <div class="card" style="max-width: 800px; margin: 0 auto;">
+                <div style="margin-bottom: 28px;">
+                    <p class="eyebrow">Step 1 — Target Focus</p>
+                    <h2 style="font-family: var(--font-heading); font-size: 24px; margin-bottom: 16px;">What job role are you preparing for?</h2>
+                    
+                    <div class="search-field">
+                        <span style="color: var(--accent-cyan);">🔍</span>
+                        <input type="text" id="roleInput" placeholder="Search or type job title (e.g. Software Engineer)" autocomplete="off">
+                    </div>
+                    
+                    <div class="job-tags" id="jobTagsContainer"></div>
+                </div>
+
+                <div style="margin-bottom: 32px;">
+                    <p class="eyebrow">Step 2 — Personalize Session</p>
+                    <h2 style="font-family: var(--font-heading); font-size: 24px; margin-bottom: 16px;">Upload your PDF Resume</h2>
+                    
+                    <form id="resumeUploadForm">
+                        <label class="upload-zone" id="uploadDropZone" for="resumeFileInput">
+                            <div class="upload-icon">📄</div>
+                            <div style="font-weight: 700; font-size: 16px; margin-bottom: 6px;" id="uploadZoneTitle">Drag & Drop your resume PDF here</div>
+                            <div style="color: var(--text-muted); font-size: 13px;">or click to browse files from your computer</div>
+                            <input type="file" id="resumeFileInput" accept=".pdf,application/pdf" style="display: none;" required>
+                        </label>
+
+                        <div id="uploadMessage" style="margin-top: 16px; font-size: 14px; color: var(--accent-cyan); min-height: 20px;"></div>
+
+                        <div style="margin-top: 28px; display: flex; justify-content: flex-end;">
+                            <button type="submit" id="startInterviewBtn" class="btn btn-primary" disabled>
+                                Start Live Interview <span aria-hidden="true">→</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span>Interview Studio &copy; 2026</span>
+            <span>Multimodal Performance Analyser</span>
+        </footer>
+    </div>
+
+    <!-- Authentication Modal -->
+    <div class="auth-modal-overlay" id="authModal">
+        <div class="auth-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-family: var(--font-heading); font-size: 20px;">Account Authentication</h3>
+                <button id="closeAuthModal" style="background:none; border:none; color:#aaa; font-size:20px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <div class="auth-tabs">
+                <span class="auth-tab active" id="tabLogin">Login</span>
+                <span class="auth-tab" id="tabRegister">Register</span>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="loginEmail" required placeholder="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••">
+                </div>
+                <div id="loginError" style="color: #ef4444; font-size: 13px; margin-bottom: 12px;"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Log In →</button>
+            </form>
+
+            <form id="registerForm" style="display: none;">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="regName" required placeholder="Candidate Name">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="regEmail" required placeholder="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" required placeholder="At least 6 characters">
+                </div>
+                <div id="regError" style="color: #ef4444; font-size: 13px; margin-bottom: 12px;"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account →</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/ui.js"></script>
+    <script>
+        const DEFAULT_ROLES = ["Software Engineer", "Machine Learning Engineer", "Data Scientist", "Frontend Developer", "Backend Developer", "Data Analyst", "DevOps Engineer"];
+        let selectedRole = "";
+
+        const roleInput = document.getElementById("roleInput");
+        const jobTagsContainer = document.getElementById("jobTagsContainer");
+        const uploadDropZone = document.getElementById("uploadDropZone");
+        const resumeFileInput = document.getElementById("resumeFileInput");
+        const uploadZoneTitle = document.getElementById("uploadZoneTitle");
+        const startInterviewBtn = document.getElementById("startInterviewBtn");
+        const uploadMessage = document.getElementById("uploadMessage");
+        const form = document.getElementById("resumeUploadForm");
+
+        // Auth elements
+        const authBtn = document.getElementById("authBtn");
+        const userInfo = document.getElementById("userInfo");
+        const authModal = document.getElementById("authModal");
+        const closeAuthModal = document.getElementById("closeAuthModal");
+        const tabLogin = document.getElementById("tabLogin");
+        const tabRegister = document.getElementById("tabRegister");
+        const loginForm = document.getElementById("loginForm");
+        const registerForm = document.getElementById("registerForm");
+
+        async function checkAuth() {
+            try {
+                const user = await API.getCurrentUser();
+                if (user) {
+                    userInfo.textContent = `👋 Welcome, ${user.name}`;
+                    authBtn.textContent = "Logout";
+                    authBtn.onclick = () => {
+                        API.setToken("");
+                        checkAuth();
+                    };
+                } else {
+                    userInfo.textContent = "";
+                    authBtn.textContent = "Login / Register";
+                    authBtn.onclick = () => authModal.classList.add("open");
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
+        checkAuth();
+
+        closeAuthModal.onclick = () => authModal.classList.remove("open");
+
+        tabLogin.onclick = () => {
+            tabLogin.classList.add("active");
+            tabRegister.classList.remove("active");
+            loginForm.style.display = "block";
+            registerForm.style.display = "none";
+        };
+
+        tabRegister.onclick = () => {
+            tabRegister.classList.add("active");
+            tabLogin.classList.remove("active");
+            registerForm.style.display = "block";
+            loginForm.style.display = "none";
+        };
+
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+            document.getElementById("loginError").textContent = "";
+            try {
+                await API.login(document.getElementById("loginEmail").value, document.getElementById("loginPassword").value);
+                authModal.classList.remove("open");
+                checkAuth();
+            } catch (err) {
+                document.getElementById("loginError").textContent = err.message;
+            }
+        };
+
+        registerForm.onsubmit = async (e) => {
+            e.preventDefault();
+            document.getElementById("regError").textContent = "";
+            try {
+                await API.register(
+                    document.getElementById("regName").value,
+                    document.getElementById("regEmail").value,
+                    document.getElementById("regPassword").value
+                );
+                // Auto login after registration
+                await API.login(document.getElementById("regEmail").value, document.getElementById("regPassword").value);
+                authModal.classList.remove("open");
+                checkAuth();
+            } catch (err) {
+                document.getElementById("regError").textContent = err.message;
+            }
+        };
+
+        function renderRoleTags(roles) {
+            jobTagsContainer.innerHTML = "";
+            roles.forEach(role => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = `tag-btn ${role === selectedRole ? 'selected' : ''}`;
+                btn.textContent = role;
+                btn.onclick = () => {
+                    selectedRole = role;
+                    roleInput.value = role;
+                    renderRoleTags(roles);
+                    validateForm();
+                };
+                jobTagsContainer.appendChild(btn);
+            });
+        }
+
+        renderRoleTags(DEFAULT_ROLES);
+
+        roleInput.addEventListener("input", () => {
+            selectedRole = roleInput.value.trim();
+            validateForm();
+        });
+
+        function validateForm() {
+            const hasRole = Boolean(selectedRole);
+            const hasFile = Boolean(resumeFileInput.files && resumeFileInput.files[0]);
+            startInterviewBtn.disabled = !(hasRole && hasFile);
+        }
+
+        resumeFileInput.addEventListener("change", () => {
+            const file = resumeFileInput.files[0];
+            if (file) {
+                uploadZoneTitle.textContent = `Attached: ${file.name}`;
+                uploadDropZone.classList.add("has-file");
+            } else {
+                uploadZoneTitle.textContent = "Drag & Drop your resume PDF here";
+                uploadDropZone.classList.remove("has-file");
+            }
+            validateForm();
+        });
+
+        ["dragover", "dragenter"].forEach(evt => {
+            uploadDropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                uploadDropZone.classList.add("dragging");
+            });
+        });
+
+        ["dragleave", "drop"].forEach(evt => {
+            uploadDropZone.addEventListener(evt, (e) => {
+                e.preventDefault();
+                uploadDropZone.classList.remove("dragging");
+            });
+        });
+
+        uploadDropZone.addEventListener("drop", (e) => {
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                resumeFileInput.files = e.dataTransfer.files;
+                uploadZoneTitle.textContent = `Attached: ${e.dataTransfer.files[0].name}`;
+                uploadDropZone.classList.add("has-file");
+                validateForm();
+            }
+        });
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const file = resumeFileInput.files[0];
+            if (!file || !selectedRole) return;
+
+            startInterviewBtn.disabled = true;
+            startInterviewBtn.textContent = "Extracting Resume & Initializing Adaptive Question 1...";
+            uploadMessage.textContent = "Processing PDF resume with Groq AI...";
+
+            try {
+                const res = await API.uploadResume(file, selectedRole);
+                uploadMessage.textContent = "Adaptive Session ready! Redirecting to live webcam interview...";
+                window.location.href = `/interview?session_id=${encodeURIComponent(res.session_id)}`;
+            } catch (err) {
+                uploadMessage.textContent = `Upload failed: ${err.message}`;
+                startInterviewBtn.disabled = false;
+                startInterviewBtn.textContent = "Start Live Interview →";
+            }
+        });
+    </script>
+</body>
+</html>

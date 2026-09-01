@@ -1,0 +1,123 @@
+.results-header {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 32px;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.score-gauge-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 32px;
+    background: radial-gradient(circle at center, rgba(0, 242, 254, 0.1), transparent 70%);
+}
+
+.score-number {
+    font-family: var(--font-heading);
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.score-label {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.metric-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 24px;
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.metric-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent-cyan);
+}
+
+.feedback-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.feedback-card {
+    border-left: 4px solid var(--accent-cyan);
+}
+
+.feedback-card.gaps {
+    border-left-color: var(--status-amber);
+}
+
+.feedback-list {
+    list-style: none;
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.feedback-list li {
+    display: flex;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.question-breakdown-list {
+    display: grid;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.question-result-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+}
+
+.q-res-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.q-res-score {
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+@media (max-width: 850px) {
+    .results-header, .metrics-grid, .feedback-grid {
+        grid-template-columns: 1fr;
+    }
+}
