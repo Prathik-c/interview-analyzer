@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Readiness Check — Interview Analyzer</title>
+    <meta name="description" content="Verify your camera, microphone, and audio environment before beginning your AI mock interview.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="/assets/css/ready.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="navbar-container">
+            <a class="brand" href="/dashboard">
+                <div class="brand-icon">⚡</div>
+                <span>Interview Analyzer</span>
+            </a>
+            <div class="nav-actions">
+                <span id="sessionRoleBadge" class="badge" style="font-size: 12px; color: var(--accent-cyan);">Interview Readiness</span>
+                <a href="/dashboard" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;">Dashboard</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="ready-wrapper">
+                <div class="ready-header">
+                    <h1 class="ready-title">You're almost ready.</h1>
+                    <p class="ready-subtitle">Test your camera and microphone to ensure accurate multimodal evaluation.</p>
+                </div>
+
+                <div class="ready-grid">
+                    <!-- Left: Device Previews -->
+                    <div class="ready-device-preview">
+                        <div>
+                            <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Camera Preview</div>
+                            <div class="ready-video-box">
+                                <video id="readyPreviewVideo" autoplay playsinline muted></video>
+                                <div id="videoOverlayBadge" class="ready-video-overlay" style="display: none;">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-green);"></span>
+                                    <span>Webcam Live</span>
+                                </div>
+                                <div id="videoErrorPlaceholder" class="ready-video-placeholder" style="display: none;">
+                                    <div style="font-size: 28px; margin-bottom: 8px;">📷❌</div>
+                                    <div style="font-weight: 600; color: #fff; margin-bottom: 4px;">Camera Unavailable</div>
+                                    <div style="font-size: 12px;">Please allow camera permissions or proceed with Text Answer Mode.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mic Activity Meter -->
+                        <div class="mic-meter-box">
+                            <div class="mic-meter-header">
+                                <span>Microphone Level</span>
+                                <span id="micDbLabel" style="color: var(--accent-cyan); font-family: monospace;">Testing...</span>
+                            </div>
+                            <div class="mic-meter-track">
+                                <div id="micMeterBar" class="mic-meter-bar"></div>
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 6px;">Speak into your microphone to verify volume levels.</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Checklist & Session Launch -->
+                    <div class="ready-checklist-box">
+                        <div>
+                            <div class="checklist-title">Pre-Interview Checklist</div>
+
+                            <div class="device-status-pills">
+                                <div class="dev-status-pill">
+                                    <div class="dev-status-label">Camera</div>
+                                    <div id="camStatusVal" class="dev-status-val">Detecting...</div>
+                                </div>
+                                <div class="dev-status-pill">
+                                    <div class="dev-status-label">Microphone</div>
+                                    <div id="micStatusVal" class="dev-status-val">Detecting...</div>
+                                </div>
+                            </div>
+
+                            <ul class="checklist-items">
+                                <li class="checklist-item pass">
+                                    <span class="status-icon">✓</span>
+                                    <span>Camera is connected & centered</span>
+                                </li>
+                                <li class="checklist-item pass">
+                                    <span class="status-icon">✓</span>
+                                    <span>Microphone is active & receiving audio</span>
+                                </li>
+                                <li class="checklist-item pass">
+                                    <span class="status-icon">✓</span>
+                                    <span>Quiet environment with minimal echo</span>
+                                </li>
+                                <li class="checklist-item pass">
+                                    <span class="status-icon">✓</span>
+                                    <span>Face is evenly lit and clearly visible</span>
+                                </li>
+                                <li class="checklist-item pass">
+                                    <span class="status-icon">✓</span>
+                                    <span>Stable internet connection for AI evaluation</span>
+                                </li>
+                            </ul>
+
+                            <div id="cameraWarningAlert" class="device-warning-box">
+                                <strong>Camera access unavailable.</strong> You can still take this interview using our built-in <strong>Text Answer Mode</strong>.
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="button" id="startInterviewBtn" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 16px; margin-bottom: 10px;">
+                                Start Interview Now <span aria-hidden="true">→</span>
+                            </button>
+
+                            <button type="button" id="textModeBtn" class="btn btn-secondary" style="width: 100%; padding: 11px; font-size: 13.5px; display: none;">
+                                Continue with Text-Only Answer Mode
+                            </button>
+
+                            <div style="text-align: center; margin-top: 12px;">
+                                <a href="/setup" style="font-size: 13px; color: var(--text-muted); text-decoration: none;">← Back to Setup</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span>Interview Analyzer &copy; 2026 — Readiness Verification</span>
+            <span>Multimodal Performance Analyser</span>
+        </footer>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth-guard.js"></script>
+    <script src="/assets/js/ready.js"></script>
+</body>
+</html>

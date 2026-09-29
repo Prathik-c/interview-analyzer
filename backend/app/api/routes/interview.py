@@ -3,10 +3,24 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, Depends
 from pydantic import BaseModel, Field
 from backend.app.services.interview_service import interview_service
 from backend.app.storage.session_storage import session_storage
-from backend.app.api.deps import get_current_user_optional
+from backend.app.api.deps import get_current_user_optional, get_current_user
 from backend.app.db.models.user import UserDB
+from backend.app.core.constants import JOB_ROLES
 
 router = APIRouter()
+
+@router.get("/interview/roles")
+async def get_roles():
+    """Retrieve list of supported interview roles."""
+    return {"roles": JOB_ROLES}
+
+@router.get("/interview/history")
+async def get_user_interview_history(
+    current_user: UserDB = Depends(get_current_user)
+):
+    """Retrieve authenticated user's interview history with performance summaries."""
+    sessions = session_storage.get_user_sessions(current_user.id)
+    return {"sessions": sessions}
 
 class InterviewStartRequest(BaseModel):
     selected_role: str = Field(min_length=1, max_length=100)

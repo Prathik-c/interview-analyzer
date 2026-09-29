@@ -45,3 +45,24 @@ async def interview_page():
 @app.get("/results", include_in_schema=False)
 async def results_page():
     return FileResponse(settings.FRONTEND_DIR / "results.html")
+
+@app.get("/login", include_in_schema=False)
+async def login_page():
+    return FileResponse(settings.FRONTEND_DIR / "login.html")
+
+@app.get("/register", include_in_schema=False)
+async def register_page():
+    return FileResponse(settings.FRONTEND_DIR / "register.html")
+
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard_page():
+    return FileResponse(settings.FRONTEND_DIR / "dashboard.html")
+
+@app.get("/setup", include_in_schema=False)
+async def setup_page():
+    return FileResponse(settings.FRONTEND_DIR / "setup.html")
+
+@app.get("/interview-ready", include_in_schema=False)
+@app.get("/ready", include_in_schema=False)
+async def ready_page():
+    return FileResponse(settings.FRONTEND_DIR / "ready.html")

@@ -3,308 +3,394 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Multimodal Interview Studio</title>
+    <title>Interview Analyzer — AI-Powered Interview Preparation & Assessment</title>
+    <meta name="description" content="AI-powered mock interviews that analyze your technical knowledge, communication, speech, and body language.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
-    <style>
-        .auth-bar { display: flex; align-items: center; gap: 12px; }
-        .auth-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
-        .auth-modal-overlay.open { opacity: 1; pointer-events: auto; }
-        .auth-card { background: var(--bg-card, #111827); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; width: 100%; max-width: 420px; padding: 28px; color: #fff; }
-        .auth-tabs { display: flex; gap: 16px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-        .auth-tab { cursor: pointer; opacity: 0.6; font-weight: 600; font-size: 15px; }
-        .auth-tab.active { opacity: 1; color: var(--accent-cyan, #06b6d4); border-bottom: 2px solid var(--accent-cyan, #06b6d4); padding-bottom: 8px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--text-muted, #9ca3af); }
-        .form-group input { width: 100%; background: #1f2937; border: 1px solid #374151; border-radius: 6px; padding: 10px 14px; color: #fff; font-size: 14px; }
-    </style>
 </head>
 <body>
     <div class="page-shell">
-        <header class="topbar">
+        <!-- Professional SaaS Marketing Navbar -->
+        <header class="navbar-container" id="home">
             <a class="brand" href="/">
-                <span class="brand-mark">IS</span>
-                <span>Interview Studio</span>
+                <div class="brand-icon">⚡</div>
+                <span>Interview Analyzer</span>
             </a>
-            <div class="auth-bar">
-                <span id="userInfo" style="font-size: 13px; color: var(--accent-cyan); font-weight: 500;"></span>
-                <button id="authBtn" class="btn btn-secondary" style="padding: 6px 14px; font-size: 13px;">Login / Register</button>
+            
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#home" class="active">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#about">About</a></li>
+            </ul>
+
+            <div class="nav-actions" id="navActions">
+                <!-- Dynamically populated based on auth status -->
+                <a href="/login" id="navLoginBtn" class="btn btn-secondary" style="padding: 9px 18px; font-size: 14px;">Login</a>
+                <a href="/register" id="navRegisterBtn" class="btn btn-primary" style="padding: 9px 20px; font-size: 14px;">Get Started</a>
+                <button class="nav-hamburger" id="navHamburger" aria-label="Toggle navigation">
+                    <span></span><span></span><span></span>
+                </button>
             </div>
         </header>
 
-        <main style="padding-top: 40px;">
-            <section class="intro">
-                <p class="eyebrow">AI-Powered Multimodal Career Platform</p>
-                <h1>Practice smarter.<br>Elevate your delivery.</h1>
-                <p class="intro-copy">Choose your target role and upload your resume to experience an adaptive AI interview with real-time posture, speech pacing, and Groq NLP evaluation.</p>
+        <main>
+            <!-- Hero Section -->
+            <section class="hero-section reveal">
+                <div>
+                    <div class="hero-badge">
+                        <span>🚀</span> Powered by Advanced Multimodal AI
+                    </div>
+                    <h1 class="hero-title">Practice Smarter.<br>Interview Better.</h1>
+                    <p class="hero-subtitle">
+                        AI-powered mock interviews that analyze your technical knowledge, communication, speech and body language.
+                    </p>
+                    <div class="hero-cta">
+                        <a href="/register" id="heroCtaBtn" class="btn btn-primary" style="font-size: 16px; padding: 16px 32px;">
+                            Start Your Interview <span aria-hidden="true">→</span>
+                        </a>
+                        <a href="#how-it-works" class="btn btn-secondary" style="font-size: 16px; padding: 16px 28px;">
+                            See How It Works
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Side Professional Visual Representation -->
+                <div class="hero-visual">
+                    <div class="visual-topbar">
+                        <div class="brand" style="font-size: 14px;">
+                            <span style="color: var(--accent-cyan); font-weight: 700;">AI INTERVIEWER ACTIVE</span>
+                        </div>
+                        <div class="visual-status">
+                            <span class="pulsing-dot"></span>
+                            <span>Live Evaluation</span>
+                        </div>
+                    </div>
+
+                    <div class="visual-main">
+                        <div class="visual-box">
+                            <div>
+                                <div class="avatar-badge">AI</div>
+                                <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">AI Interviewer</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Adaptive Technical Question #2</div>
+                            </div>
+                            <div class="waveform">
+                                <span></span><span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+
+                        <div class="visual-box" style="background: rgba(0,0,0,0.4); border-color: rgba(0,242,254,0.2);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <div style="font-weight: 700; font-size: 14px;">Candidate Stream</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Webcam & Audio Analysis</div>
+                                </div>
+                                <span class="badge" style="font-size: 10px;">LIVE</span>
+                            </div>
+                            <div style="margin-top: 24px; text-align: right;">
+                                <span style="font-size: 11px; color: var(--accent-cyan); font-weight: 600;">Attention Alignment: 94%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="visual-metrics">
+                        <div class="metric-pill">
+                            <div class="metric-pill-val">88%</div>
+                            <div class="metric-pill-lbl">Tech Depth</div>
+                        </div>
+                        <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                        <div class="metric-pill">
+                            <div class="metric-pill-val">92%</div>
+                            <div class="metric-pill-lbl">Speech Clarity</div>
+                        </div>
+                        <div style="width: 1px; height: 28px; background: rgba(255,255,255,0.1);"></div>
+                        <div class="metric-pill">
+                            <div class="metric-pill-val">85%</div>
+                            <div class="metric-pill-lbl">Body Language</div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
-            <div class="card" style="max-width: 800px; margin: 0 auto;">
-                <div style="margin-bottom: 28px;">
-                    <p class="eyebrow">Step 1 — Target Focus</p>
-                    <h2 style="font-family: var(--font-heading); font-size: 24px; margin-bottom: 16px;">What job role are you preparing for?</h2>
-                    
-                    <div class="search-field">
-                        <span style="color: var(--accent-cyan);">🔍</span>
-                        <input type="text" id="roleInput" placeholder="Search or type job title (e.g. Software Engineer)" autocomplete="off">
+            <div class="section-divider"></div>
+
+            <!-- Features Section -->
+            <section class="features-section" id="features">
+                <div class="section-header reveal">
+                    <p class="eyebrow">Comprehensive Platform</p>
+                    <h2>Key Capabilities</h2>
+                    <p>Designed to simulate real high-stakes interviews with multimodal AI intelligence.</p>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card reveal">
+                        <div class="feature-icon-wrapper">📄</div>
+                        <h3>Resume-Aware Questions</h3>
+                        <p>Automatically parses your PDF resume, extracts candidate skills and projects, and tailors questions to your actual background.</p>
                     </div>
-                    
-                    <div class="job-tags" id="jobTagsContainer"></div>
+
+                    <div class="feature-card reveal reveal-delay-1">
+                        <div class="feature-icon-wrapper">⚡</div>
+                        <h3>Adaptive Technical Interview</h3>
+                        <p>Dynamic engine evaluates your answers in real-time and adjusts question difficulty and follow-up depth accordingly.</p>
+                    </div>
+
+                    <div class="feature-card reveal reveal-delay-2">
+                        <div class="feature-icon-wrapper">🧠</div>
+                        <h3>AI Answer Evaluation</h3>
+                        <p>Powered by high-speed Groq NLP to assess technical correctness, concept depth, clarity, and specific domain terminology.</p>
+                    </div>
+
+                    <div class="feature-card reveal reveal-delay-3">
+                        <div class="feature-icon-wrapper">🎙️</div>
+                        <h3>Speech Analysis</h3>
+                        <p>Extracts words-per-minute pacing, pauses, and filler word frequency (um, uh, like) to build spoken communication confidence.</p>
+                    </div>
+
+                    <div class="feature-card reveal reveal-delay-1">
+                        <div class="feature-icon-wrapper">📹</div>
+                        <h3>Body Language Analysis</h3>
+                        <p>Uses computer vision to detect facial visibility, attention alignment, and postural stability throughout your answers.</p>
+                    </div>
+
+                    <div class="feature-card reveal reveal-delay-2">
+                        <div class="feature-icon-wrapper">📊</div>
+                        <h3>Detailed Performance Report</h3>
+                        <p>Generates an actionable scorecard with overall percentage breakdown, highlighted strengths, and targeted improvement areas.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- How It Works Section -->
+            <section class="how-section" id="how-it-works">
+                <div class="section-header reveal">
+                    <p class="eyebrow">Structured User Journey</p>
+                    <h2>How It Works</h2>
+                    <p>Four streamlined steps from setup to deep performance analytics.</p>
                 </div>
 
-                <div style="margin-bottom: 32px;">
-                    <p class="eyebrow">Step 2 — Personalize Session</p>
-                    <h2 style="font-family: var(--font-heading); font-size: 24px; margin-bottom: 16px;">Upload your PDF Resume</h2>
-                    
-                    <form id="resumeUploadForm">
-                        <label class="upload-zone" id="uploadDropZone" for="resumeFileInput">
-                            <div class="upload-icon">📄</div>
-                            <div style="font-weight: 700; font-size: 16px; margin-bottom: 6px;" id="uploadZoneTitle">Drag & Drop your resume PDF here</div>
-                            <div style="color: var(--text-muted); font-size: 13px;">or click to browse files from your computer</div>
-                            <input type="file" id="resumeFileInput" accept=".pdf,application/pdf" style="display: none;" required>
-                        </label>
+                <div class="steps-grid">
+                    <div class="step-card reveal">
+                        <div class="step-num">01</div>
+                        <h4>Upload Resume</h4>
+                        <p>Attach your PDF resume. Our parser automatically extracts your verified skills, experience, and domain expertise.</p>
+                    </div>
 
-                        <div id="uploadMessage" style="margin-top: 16px; font-size: 14px; color: var(--accent-cyan); min-height: 20px;"></div>
+                    <div class="step-card reveal reveal-delay-1">
+                        <div class="step-num">02</div>
+                        <h4>Select Job Role</h4>
+                        <p>Choose from over 30 tech roles including ML Engineer, Software Engineer, Data Scientist, DevOps, and more.</p>
+                    </div>
 
-                        <div style="margin-top: 28px; display: flex; justify-content: flex-end;">
-                            <button type="submit" id="startInterviewBtn" class="btn btn-primary" disabled>
-                                Start Live Interview <span aria-hidden="true">→</span>
-                            </button>
+                    <div class="step-card reveal reveal-delay-2">
+                        <div class="step-num">03</div>
+                        <h4>Complete AI Interview</h4>
+                        <p>Answer realistic adaptive questions on video while our multimodal pipeline analyzes speech, answer quality, and posture.</p>
+                    </div>
+
+                    <div class="step-card reveal reveal-delay-3">
+                        <div class="step-num">04</div>
+                        <h4>Get Detailed Analysis</h4>
+                        <p>Receive comprehensive ratings (NLP 50%, Speech 25%, Video 25%), per-question transcripts, and actionable recommendations.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Product Preview Section -->
+            <section class="preview-section" id="preview">
+                <div class="section-header reveal">
+                    <p class="eyebrow">Actionable Feedback</p>
+                    <h2>Analytics You Can Act On</h2>
+                    <p>Every mock interview produces instant deep-dive analytics and transparent breakdowns.</p>
+                </div>
+
+                <div class="dashboard-mockup reveal">
+                    <div class="mock-window-header">
+                        <span class="window-dot red"></span>
+                        <span class="window-dot yellow"></span>
+                        <span class="window-dot green"></span>
+                        <span style="font-size: 13px; color: var(--text-muted); margin-left: 12px; font-weight: 500;">Interview Analyzer — Score Report</span>
+                    </div>
+
+                    <div class="mock-grid">
+                        <div class="score-main-card">
+                            <div class="big-score-val">84%</div>
+                            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.05em;">OVERALL SCORE</div>
                         </div>
-                    </form>
+
+                        <div>
+                            <div class="mock-metrics-row">
+                                <div class="mock-metric-item">
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Technical Knowledge (50%)</div>
+                                    <div class="mock-metric-val" style="color: var(--accent-cyan);">88%</div>
+                                </div>
+                                <div class="mock-metric-item">
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Speech Delivery (25%)</div>
+                                    <div class="mock-metric-val" style="color: #60A5FA;">81%</div>
+                                </div>
+                                <div class="mock-metric-item">
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Body Language (25%)</div>
+                                    <div class="mock-metric-val" style="color: #34D399;">83%</div>
+                                </div>
+                            </div>
+
+                            <div class="mock-improvements">
+                                <div style="font-size: 13px; font-weight: 700; color: #F59E0B; text-transform: uppercase; letter-spacing: 0.05em;">Identified Growth Areas</div>
+                                <div class="mock-improvement-chips">
+                                    <span class="chip">📌 Reduce filler word frequency</span>
+                                    <span class="chip">📌 Deepen architectural explanations</span>
+                                    <span class="chip">📌 Maintain steady eye contact</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- About Section -->
+            <section class="features-section" id="about" style="padding-top: 40px;">
+                <div class="section-header reveal">
+                    <p class="eyebrow">Why Interview Analyzer</p>
+                    <h2>Engineered for Realistic Practice</h2>
+                    <p>Traditional mock interviews are either expensive or rely on static question lists. Interview Analyzer bridges the gap with responsive, multimodal AI feedback.</p>
+                </div>
+
+                <div class="features-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="feature-card reveal">
+                        <div class="feature-icon-wrapper">🎯</div>
+                        <h3>Zero Generic Questions</h3>
+                        <p>No cookie-cutter trivia. Questions directly challenge your reported resume experience and the specific requirements of your targeted role.</p>
+                    </div>
+
+                    <div class="feature-card reveal reveal-delay-1">
+                        <div class="feature-icon-wrapper">🔒</div>
+                        <h3>Private & Local Processing</h3>
+                        <p>Your session recordings and metrics remain secure with encrypted JWT authentication and dedicated user histories.</p>
+                    </div>
+
+                    <div class="feature-card reveal reveal-delay-2">
+                        <div class="feature-icon-wrapper">📈</div>
+                        <h3>Trackable Progression</h3>
+                        <p>View your past interview history, compare role-by-role scores, and measure your improvement over time.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="section-divider"></div>
+
+            <!-- Final CTA Section (Replaces the old inline setup section) -->
+            <section class="cta-section reveal" id="ctaSection">
+                <div class="cta-card">
+                    <div class="cta-badge">Ready to Level Up?</div>
+                    <h2 class="cta-title">Ready to improve your interview skills?</h2>
+                    <p class="cta-subtitle">
+                        Create an account or jump into your setup dashboard to configure your personalized AI interview in seconds.
+                    </p>
+                    <div class="cta-buttons">
+                        <a href="/register" id="ctaPrimaryBtn" class="btn btn-primary" style="font-size: 16px; padding: 16px 36px;">
+                            Start Practicing Now <span aria-hidden="true">→</span>
+                        </a>
+                        <a href="/login" id="ctaSecondaryBtn" class="btn btn-secondary" style="font-size: 16px; padding: 16px 30px;">
+                            Sign In to Account
+                        </a>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <footer class="footer">
-            <span>Interview Studio &copy; 2026</span>
+            <span>Interview Analyzer &copy; 2026 — Professional AI Interview Platform</span>
             <span>Multimodal Performance Analyser</span>
         </footer>
     </div>
 
-    <!-- Authentication Modal -->
-    <div class="auth-modal-overlay" id="authModal">
-        <div class="auth-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="font-family: var(--font-heading); font-size: 20px;">Account Authentication</h3>
-                <button id="closeAuthModal" style="background:none; border:none; color:#aaa; font-size:20px; cursor:pointer;">&times;</button>
-            </div>
-            
-            <div class="auth-tabs">
-                <span class="auth-tab active" id="tabLogin">Login</span>
-                <span class="auth-tab" id="tabRegister">Register</span>
-            </div>
-
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="loginEmail" required placeholder="user@example.com">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" required placeholder="••••••••">
-                </div>
-                <div id="loginError" style="color: #ef4444; font-size: 13px; margin-bottom: 12px;"></div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Log In →</button>
-            </form>
-
-            <form id="registerForm" style="display: none;">
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="regName" required placeholder="Candidate Name">
-                </div>
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="regEmail" required placeholder="user@example.com">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="regPassword" required placeholder="At least 6 characters">
-                </div>
-                <div id="regError" style="color: #ef4444; font-size: 13px; margin-bottom: 12px;"></div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Account →</button>
-            </form>
-        </div>
-    </div>
-
     <script src="/assets/js/api.js"></script>
-    <script src="/assets/js/ui.js"></script>
+    <script src="/assets/js/auth-guard.js"></script>
     <script>
-        const DEFAULT_ROLES = ["Software Engineer", "Machine Learning Engineer", "Data Scientist", "Frontend Developer", "Backend Developer", "Data Analyst", "DevOps Engineer"];
-        let selectedRole = "";
+        // Hamburger menu toggle
+        const navHamburger = document.getElementById('navHamburger');
+        const navLinks = document.getElementById('navLinks');
+        if (navHamburger && navLinks) {
+            navHamburger.addEventListener('click', () => {
+                navHamburger.classList.toggle('open');
+                navLinks.classList.toggle('open');
+            });
+            navLinks.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    navHamburger.classList.remove('open');
+                    navLinks.classList.remove('open');
+                });
+            });
+        }
 
-        const roleInput = document.getElementById("roleInput");
-        const jobTagsContainer = document.getElementById("jobTagsContainer");
-        const uploadDropZone = document.getElementById("uploadDropZone");
-        const resumeFileInput = document.getElementById("resumeFileInput");
-        const uploadZoneTitle = document.getElementById("uploadZoneTitle");
-        const startInterviewBtn = document.getElementById("startInterviewBtn");
-        const uploadMessage = document.getElementById("uploadMessage");
-        const form = document.getElementById("resumeUploadForm");
-
-        // Auth elements
-        const authBtn = document.getElementById("authBtn");
-        const userInfo = document.getElementById("userInfo");
-        const authModal = document.getElementById("authModal");
-        const closeAuthModal = document.getElementById("closeAuthModal");
-        const tabLogin = document.getElementById("tabLogin");
-        const tabRegister = document.getElementById("tabRegister");
-        const loginForm = document.getElementById("loginForm");
-        const registerForm = document.getElementById("registerForm");
-
-        async function checkAuth() {
-            try {
-                const user = await API.getCurrentUser();
-                if (user) {
-                    userInfo.textContent = `👋 Welcome, ${user.name}`;
-                    authBtn.textContent = "Logout";
-                    authBtn.onclick = () => {
-                        API.setToken("");
-                        checkAuth();
-                    };
-                } else {
-                    userInfo.textContent = "";
-                    authBtn.textContent = "Login / Register";
-                    authBtn.onclick = () => authModal.classList.add("open");
+        // Scroll-reveal with IntersectionObserver
+        const revealEls = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
                 }
-            } catch (e) {
-                console.log(e);
-            }
-        }
-        checkAuth();
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+        revealEls.forEach(el => observer.observe(el));
 
-        closeAuthModal.onclick = () => authModal.classList.remove("open");
+        // Authentication state handling on landing page
+        async function updateNavForAuth() {
+            const navActions = document.getElementById("navActions");
+            const heroCtaBtn = document.getElementById("heroCtaBtn");
+            const ctaPrimaryBtn = document.getElementById("ctaPrimaryBtn");
+            const ctaSecondaryBtn = document.getElementById("ctaSecondaryBtn");
 
-        tabLogin.onclick = () => {
-            tabLogin.classList.add("active");
-            tabRegister.classList.remove("active");
-            loginForm.style.display = "block";
-            registerForm.style.display = "none";
-        };
+            const user = await Auth.getCurrentUser();
+            if (user) {
+                // User is logged in: show Dashboard and Logout
+                navActions.innerHTML = `
+                    <span style="font-size: 13px; color: var(--text-secondary); margin-right: 4px; display: inline-flex; align-items: center; gap: 6px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-green);"></span>
+                        ${user.name || 'Candidate'}
+                    </span>
+                    <a href="/dashboard" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">Dashboard</a>
+                    <button id="logoutBtn" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13px;">Logout</button>
+                    <button class="nav-hamburger" id="navHamburger" aria-label="Toggle navigation">
+                        <span></span><span></span><span></span>
+                    </button>
+                `;
 
-        tabRegister.onclick = () => {
-            tabRegister.classList.add("active");
-            tabLogin.classList.remove("active");
-            registerForm.style.display = "block";
-            loginForm.style.display = "none";
-        };
-
-        loginForm.onsubmit = async (e) => {
-            e.preventDefault();
-            document.getElementById("loginError").textContent = "";
-            try {
-                await API.login(document.getElementById("loginEmail").value, document.getElementById("loginPassword").value);
-                authModal.classList.remove("open");
-                checkAuth();
-            } catch (err) {
-                document.getElementById("loginError").textContent = err.message;
-            }
-        };
-
-        registerForm.onsubmit = async (e) => {
-            e.preventDefault();
-            document.getElementById("regError").textContent = "";
-            try {
-                await API.register(
-                    document.getElementById("regName").value,
-                    document.getElementById("regEmail").value,
-                    document.getElementById("regPassword").value
-                );
-                // Auto login after registration
-                await API.login(document.getElementById("regEmail").value, document.getElementById("regPassword").value);
-                authModal.classList.remove("open");
-                checkAuth();
-            } catch (err) {
-                document.getElementById("regError").textContent = err.message;
-            }
-        };
-
-        function renderRoleTags(roles) {
-            jobTagsContainer.innerHTML = "";
-            roles.forEach(role => {
-                const btn = document.createElement("button");
-                btn.type = "button";
-                btn.className = `tag-btn ${role === selectedRole ? 'selected' : ''}`;
-                btn.textContent = role;
-                btn.onclick = () => {
-                    selectedRole = role;
-                    roleInput.value = role;
-                    renderRoleTags(roles);
-                    validateForm();
+                document.getElementById("logoutBtn").onclick = () => {
+                    Auth.logout();
                 };
-                jobTagsContainer.appendChild(btn);
-            });
-        }
 
-        renderRoleTags(DEFAULT_ROLES);
-
-        roleInput.addEventListener("input", () => {
-            selectedRole = roleInput.value.trim();
-            validateForm();
-        });
-
-        function validateForm() {
-            const hasRole = Boolean(selectedRole);
-            const hasFile = Boolean(resumeFileInput.files && resumeFileInput.files[0]);
-            startInterviewBtn.disabled = !(hasRole && hasFile);
-        }
-
-        resumeFileInput.addEventListener("change", () => {
-            const file = resumeFileInput.files[0];
-            if (file) {
-                uploadZoneTitle.textContent = `Attached: ${file.name}`;
-                uploadDropZone.classList.add("has-file");
+                // Update CTAs to point to Dashboard / Setup
+                if (heroCtaBtn) {
+                    heroCtaBtn.textContent = "Go to Dashboard →";
+                    heroCtaBtn.href = "/dashboard";
+                }
+                if (ctaPrimaryBtn) {
+                    ctaPrimaryBtn.textContent = "Go to Dashboard →";
+                    ctaPrimaryBtn.href = "/dashboard";
+                }
+                if (ctaSecondaryBtn) {
+                    ctaSecondaryBtn.textContent = "Start New Interview";
+                    ctaSecondaryBtn.href = "/setup";
+                }
             } else {
-                uploadZoneTitle.textContent = "Drag & Drop your resume PDF here";
-                uploadDropZone.classList.remove("has-file");
+                // User is not logged in: keep standard login/register links
+                if (heroCtaBtn) heroCtaBtn.href = "/register";
+                if (ctaPrimaryBtn) ctaPrimaryBtn.href = "/register";
+                if (ctaSecondaryBtn) ctaSecondaryBtn.href = "/login";
             }
-            validateForm();
-        });
+        }
 
-        ["dragover", "dragenter"].forEach(evt => {
-            uploadDropZone.addEventListener(evt, (e) => {
-                e.preventDefault();
-                uploadDropZone.classList.add("dragging");
-            });
-        });
-
-        ["dragleave", "drop"].forEach(evt => {
-            uploadDropZone.addEventListener(evt, (e) => {
-                e.preventDefault();
-                uploadDropZone.classList.remove("dragging");
-            });
-        });
-
-        uploadDropZone.addEventListener("drop", (e) => {
-            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                resumeFileInput.files = e.dataTransfer.files;
-                uploadZoneTitle.textContent = `Attached: ${e.dataTransfer.files[0].name}`;
-                uploadDropZone.classList.add("has-file");
-                validateForm();
-            }
-        });
-
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const file = resumeFileInput.files[0];
-            if (!file || !selectedRole) return;
-
-            startInterviewBtn.disabled = true;
-            startInterviewBtn.textContent = "Extracting Resume & Initializing Adaptive Question 1...";
-            uploadMessage.textContent = "Processing PDF resume with Groq AI...";
-
-            try {
-                const res = await API.uploadResume(file, selectedRole);
-                uploadMessage.textContent = "Adaptive Session ready! Redirecting to live webcam interview...";
-                window.location.href = `/interview?session_id=${encodeURIComponent(res.session_id)}`;
-            } catch (err) {
-                uploadMessage.textContent = `Upload failed: ${err.message}`;
-                startInterviewBtn.disabled = false;
-                startInterviewBtn.textContent = "Start Live Interview →";
-            }
-        });
+        updateNavForAuth();
     </script>
 </body>
 </html>

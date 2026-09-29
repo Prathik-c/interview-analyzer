@@ -3,23 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live AI Interview Session</title>
+    <title>Live AI Interview Session — Interview Analyzer</title>
+    <meta name="description" content="Adaptive multimodal AI mock interview: evaluate technical competence, communication pacing, and presentation posture.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="/assets/css/interview.css">
 </head>
 <body>
     <div class="page-shell">
-        <header class="topbar">
-            <a class="brand" href="/">
-                <span class="brand-mark">IS</span>
-                <span>Interview Studio</span>
+        <!-- Minimal Non-Distracting Interview Topbar -->
+        <header class="app-topbar">
+            <a class="brand" href="/dashboard">
+                <div class="brand-icon">⚡</div>
+                <span>Interview Analyzer</span>
             </a>
-            <span class="step-label"><span class="status-dot"></span>Live Multimodal Session</span>
+
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span class="badge" id="interviewProgressBadge" style="font-size: 13px; color: var(--accent-cyan);">
+                    <span class="status-dot"></span> Live AI Session
+                </span>
+                <a href="/dashboard" class="btn btn-secondary" style="padding: 7px 14px; font-size: 13px;" onclick="return confirm('Are you sure you want to return to dashboard? Your recorded answers are saved.');">
+                    Exit to Dashboard
+                </a>
+            </div>
         </header>
 
-        <main style="padding-top: 24px;">
+        <main style="padding-top: 20px;">
             <div class="progress-bar-container">
                 <div class="progress-bar-fill" id="progressBarFill"></div>
             </div>
@@ -37,15 +48,31 @@
                     </div>
 
                     <div class="camera-controls">
-                        <button type="button" id="startRecordBtn" class="btn btn-primary" style="flex: 1;">
+                        <button type="button" id="startRecordBtn" class="btn btn-primary" style="flex: 1; padding: 14px;">
                             🎥 Start Answer (Record Video)
                         </button>
-                        <button type="button" id="stopRecordBtn" class="btn btn-secondary" style="flex: 1;" hidden>
-                            ⏹ Finish Answer & Process
+                        <button type="button" id="stopRecordBtn" class="btn btn-secondary" style="flex: 1; padding: 14px;" hidden>
+                            ⏹ Finish Answer & Submit
                         </button>
                     </div>
 
-                    <div id="statusMessage" style="margin-top: 14px; font-size: 13px; color: var(--accent-cyan); min-height: 20px;"></div>
+                    <div id="statusMessage" style="margin-top: 14px; font-size: 13.5px; color: var(--accent-cyan); min-height: 22px;"></div>
+
+                    <!-- Professional Processing Pipeline UI -->
+                    <div id="processingCard" class="processing-card" style="display: none;">
+                        <div class="processing-header">
+                            <div class="processing-spinner"></div>
+                            <h4>Analyzing your answer...</h4>
+                        </div>
+                        <ul class="processing-steps">
+                            <li id="procStep1" class="proc-step"><span class="step-bullet">○</span> 1. Recording upload & audio extraction</li>
+                            <li id="procStep2" class="proc-step"><span class="step-bullet">○</span> 2. Speech transcription (Groq Whisper)</li>
+                            <li id="procStep3" class="proc-step"><span class="step-bullet">○</span> 3. Speech analysis (WPM & filler words)</li>
+                            <li id="procStep4" class="proc-step"><span class="step-bullet">○</span> 4. Video posture & attention analysis</li>
+                            <li id="procStep5" class="proc-step"><span class="step-bullet">○</span> 5. Technical NLP correctness & depth</li>
+                            <li id="procStep6" class="proc-step"><span class="step-bullet">○</span> 6. Generating adaptive follow-up question</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <!-- Right: Question Stepper & Answers -->
@@ -56,33 +83,43 @@
                             <span style="color: var(--text-muted); font-size: 13px;" id="questionNumber">Question 1 of 5</span>
                         </div>
 
-                        <h3 class="question-title" id="questionText">Loading interview question...</h3>
+                        <h2 class="question-title" id="questionText">Loading interview question...</h2>
 
                         <div id="transcriptBox" class="transcript-box" hidden></div>
 
-                        <div style="margin-top: 20px;">
-                            <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">TEXT BACKUP ANSWER (OPTIONAL):</label>
-                            <textarea id="textAnswerInput" style="width: 100%; min-height: 90px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); padding: 12px; font-family: var(--font-sans); outline: none;" placeholder="Or type your response here..."></textarea>
+                        <div style="margin-top: 24px;">
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+                                Text Backup Answer (Optional):
+                            </label>
+                            <textarea id="textAnswerInput" style="width: 100%; min-height: 90px; background: rgba(11, 15, 23, 0.8); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); padding: 12px; font-family: var(--font-sans); outline: none;" placeholder="Or type your technical answer here..."></textarea>
                             <button type="button" id="saveTextBtn" class="btn btn-secondary" style="margin-top: 8px; width: 100%;">Save Text Answer</button>
                         </div>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                        <button type="button" id="prevQuestionBtn" class="btn btn-secondary">← Previous</button>
-                        <button type="button" id="nextQuestionBtn" class="btn btn-secondary">Next Question →</button>
-                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                            <button type="button" id="prevQuestionBtn" class="btn btn-secondary">← Previous</button>
+                            <button type="button" id="nextQuestionBtn" class="btn btn-secondary">Next Question →</button>
+                        </div>
 
-                    <div style="margin-top: 16px;">
-                        <button type="button" id="finishInterviewBtn" class="btn btn-primary" style="width: 100%;" disabled>
-                            Complete & Finish Interview →
-                        </button>
+                        <div style="margin-top: 16px;">
+                            <button type="button" id="finishInterviewBtn" class="btn btn-primary" style="width: 100%; padding: 14px;" disabled>
+                                Complete & Finish Interview →
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
+
+        <footer class="footer">
+            <span>Interview Analyzer &copy; 2026 — Live Multimodal Session</span>
+            <span>AI Multimodal Performance Analyser</span>
+        </footer>
     </div>
 
     <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth-guard.js"></script>
     <script src="/assets/js/state.js"></script>
     <script src="/assets/js/ui.js"></script>
     <script src="/assets/js/camera.js"></script>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Your Account — Interview Analyzer</title>
+    <meta name="description" content="Register for an Interview Analyzer account and start preparing for your next interview with AI.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="navbar-container">
+            <a class="brand" href="/">
+                <div class="brand-icon">⚡</div>
+                <span>Interview Analyzer</span>
+            </a>
+            <div class="nav-actions">
+                <a href="/" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;">← Back to Home</a>
+            </div>
+        </header>
+
+        <main class="auth-wrapper">
+            <div class="auth-split-card">
+                <!-- Left: Branding & Value Proposition -->
+                <div class="auth-brand-side">
+                    <div>
+                        <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.2); padding: 4px 12px; border-radius: var(--radius-full); font-size: 12px; font-weight: 600; color: var(--accent-cyan); margin-bottom: 20px;">
+                            <span>✨</span> Get Started Free
+                        </div>
+                        <h3>Join Interview Analyzer</h3>
+                        <p>Experience realistic, adaptive technical interviews that evaluate your knowledge, speech fluency, and presentation posture.</p>
+
+                        <ul class="auth-feature-list">
+                            <li><span class="icon">✓</span> Free resume parsing & skill mapping</li>
+                            <li><span class="icon">✓</span> Dynamic follow-up questions tailored to your answers</li>
+                            <li><span class="icon">✓</span> Audio pacing & filler word detection</li>
+                            <li><span class="icon">✓</span> Track your progress on your personal dashboard</li>
+                        </ul>
+                    </div>
+
+                    <div style="padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 13px; color: var(--text-muted);">
+                        Take mock interviews anytime, anywhere.
+                    </div>
+                </div>
+
+                <!-- Right: Register Form -->
+                <div class="auth-form-side">
+                    <div class="auth-header" style="text-align: left;">
+                        <h2>Create your account</h2>
+                        <p>Set up your profile to start practicing mock interviews.</p>
+                    </div>
+
+                    <div id="authAlert" class="auth-alert"></div>
+
+                    <form id="registerForm">
+                        <div class="form-field">
+                            <label for="nameInput">Full Name</label>
+                            <input type="text" id="nameInput" placeholder="e.g. Alex Chen" required autocomplete="name">
+                        </div>
+
+                        <div class="form-field">
+                            <label for="emailInput">Email Address</label>
+                            <input type="email" id="emailInput" placeholder="name@example.com" required autocomplete="email">
+                        </div>
+
+                        <div class="form-field">
+                            <label for="passwordInput">Password</label>
+                            <input type="password" id="passwordInput" placeholder="At least 6 characters" required autocomplete="new-password">
+                        </div>
+
+                        <div class="form-field">
+                            <label for="confirmPasswordInput">Confirm Password</label>
+                            <input type="password" id="confirmPasswordInput" placeholder="Re-enter your password" required autocomplete="new-password">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="registerSubmitBtn" style="width: 100%; padding: 14px; font-size: 15px; margin-top: 6px;">
+                            Create Account <span aria-hidden="true">→</span>
+                        </button>
+                    </form>
+
+                    <div class="auth-footer" style="text-align: left; margin-top: 24px;">
+                        <span>Already have an account?</span>
+                        <a href="/login">Login</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span>Interview Analyzer &copy; 2026</span>
+            <span>AI Multimodal Performance Analyser</span>
+        </footer>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth-guard.js"></script>
+    <script>
+        // Redirect if already logged in
+        Auth.redirectIfLoggedIn("/dashboard");
+
+        const registerForm = document.getElementById("registerForm");
+        const nameInput = document.getElementById("nameInput");
+        const emailInput = document.getElementById("emailInput");
+        const passwordInput = document.getElementById("passwordInput");
+        const confirmPasswordInput = document.getElementById("confirmPasswordInput");
+        const authAlert = document.getElementById("authAlert");
+        const registerSubmitBtn = document.getElementById("registerSubmitBtn");
+
+        function showAlert(msg, type) {
+            authAlert.textContent = msg;
+            authAlert.className = `auth-alert ${type}`;
+        }
+
+        registerForm.onsubmit = async (e) => {
+            e.preventDefault();
+            authAlert.className = "auth-alert";
+
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (!name || !email || !password || !confirmPassword) {
+                showAlert("Please fill in all fields.", "error");
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert("Password must be at least 6 characters long.", "error");
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showAlert("Passwords do not match. Please check again.", "error");
+                return;
+            }
+
+            registerSubmitBtn.disabled = true;
+            registerSubmitBtn.textContent = "Creating Account...";
+
+            try {
+                await API.register(name, email, password);
+                // Auto login user after registration
+                await API.login(email, password);
+                showAlert("Account created successfully! Redirecting to dashboard...", "success");
+
+                const params = new URLSearchParams(window.location.search);
+                const redirectTarget = params.get("redirect") ? decodeURIComponent(params.get("redirect")) : "/dashboard";
+
+                setTimeout(() => {
+                    window.location.href = redirectTarget;
+                }, 600);
+            } catch (err) {
+                showAlert(err.message || "Registration failed. Please check your information and try again.", "error");
+                registerSubmitBtn.disabled = false;
+                registerSubmitBtn.textContent = "Create Account →";
+            }
+        };
+    </script>
+</body>
+</html>

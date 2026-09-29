@@ -87,22 +87,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function showStageProgress() {
-        const stages = [
-            "✓ Recording uploaded to server",
-            "✓ Transcribing speech audio with Groq Whisper",
-            "✓ Analysing speech delivery (WPM & filler frequency)",
-            "✓ Analysing video posture & eye contact consistency",
-            "✓ Evaluating technical correctness & depth with Groq NLP",
-            "✓ Updating candidate skill map & performance metrics",
-            "✓ Adaptive Engine: Generating tailored follow-up question..."
-        ];
+        const procCard = document.getElementById("processingCard");
+        if (procCard) procCard.style.display = "block";
 
-        for (const stage of stages) {
-            if (statusMessage) {
-                statusMessage.innerHTML = `<span style="color:var(--accent-cyan)">${stage}</span>`;
+        const stepIds = ["procStep1", "procStep2", "procStep3", "procStep4", "procStep5", "procStep6"];
+        stepIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.className = "proc-step";
+                const b = el.querySelector(".step-bullet");
+                if (b) b.textContent = "○";
             }
-            await new Promise(r => setTimeout(r, 400));
+        });
+
+        for (let i = 0; i < stepIds.length; i++) {
+            const el = document.getElementById(stepIds[i]);
+            if (el) {
+                el.className = "proc-step active";
+                const b = el.querySelector(".step-bullet");
+                if (b) b.textContent = "●";
+            }
+            if (i > 0) {
+                const prev = document.getElementById(stepIds[i - 1]);
+                if (prev) {
+                    prev.className = "proc-step done";
+                    const pb = prev.querySelector(".step-bullet");
+                    if (pb) pb.textContent = "✓";
+                }
+            }
+            await new Promise(r => setTimeout(r, 450));
         }
+
+        const last = document.getElementById(stepIds[stepIds.length - 1]);
+        if (last) {
+            last.className = "proc-step done";
+            const lb = last.querySelector(".step-bullet");
+            if (lb) lb.textContent = "✓";
+        }
+        await new Promise(r => setTimeout(r, 300));
+        if (procCard) procCard.style.display = "none";
     }
 
     // Start Recording Action

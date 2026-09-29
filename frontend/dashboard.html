@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Interview Analyzer</title>
+    <meta name="description" content="Candidate interview dashboard: monitor your AI interview scores, review detailed evaluations, and launch new mock sessions.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
+</head>
+<body>
+    <div class="page-shell">
+        <!-- SaaS Authenticated Topbar -->
+        <header class="app-topbar">
+            <a class="brand" href="/dashboard">
+                <div class="brand-icon">⚡</div>
+                <span>Interview Analyzer</span>
+            </a>
+
+            <nav>
+                <ul class="app-nav">
+                    <li><a href="/dashboard" class="app-nav-link active" data-nav="dashboard">Dashboard</a></li>
+                    <li><a href="/setup" class="app-nav-link" data-nav="setup">New Interview</a></li>
+                    <li><a href="#historySection" class="app-nav-link" data-nav="history">History</a></li>
+                </ul>
+            </nav>
+
+            <div class="app-user-menu">
+                <div class="user-avatar-badge" id="appUserAvatar">U</div>
+                <div class="user-info-text">
+                    <span class="user-name-text" id="appUserName">Candidate</span>
+                    <span class="user-email-text" id="appUserEmail">loading...</span>
+                </div>
+                <button type="button" class="btn btn-secondary" id="appLogoutBtn" style="padding: 7px 14px; font-size: 13px; margin-left: 8px;">
+                    Logout
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Welcome Header Banner -->
+            <section class="dashboard-welcome">
+                <div>
+                    <h1 class="welcome-title" id="welcomeUserHeading">Welcome back 👋</h1>
+                    <p class="welcome-subtitle">Ready for your next AI-evaluated technical interview?</p>
+                </div>
+                <div>
+                    <a href="/setup" class="btn btn-primary" style="padding: 14px 26px; font-size: 15px;">
+                        + Start New Interview
+                    </a>
+                </div>
+            </section>
+
+            <!-- Performance Metrics Row -->
+            <section style="margin-bottom: 12px;">
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Overall Average</span>
+                            <span class="stat-icon">📊</span>
+                        </div>
+                        <div class="stat-val accent" id="avgScoreVal">—</div>
+                        <div class="stat-desc">Multimodal performance score</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Interviews Completed</span>
+                            <span class="stat-icon">🎯</span>
+                        </div>
+                        <div class="stat-val" id="interviewCountVal">0</div>
+                        <div class="stat-desc">Sessions taken with AI analysis</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Personal Best</span>
+                            <span class="stat-icon">🏆</span>
+                        </div>
+                        <div class="stat-val accent" id="bestScoreVal">—</div>
+                        <div class="stat-desc">Highest score achieved to date</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recent Interviews Section -->
+            <section id="historySection" style="margin-bottom: 60px;">
+                <div class="section-headline-bar">
+                    <h3>Recent Interviews</h3>
+                    <a href="/setup" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;">
+                        Configure Session
+                    </a>
+                </div>
+
+                <div id="historyLoading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    Loading interview records...
+                </div>
+
+                <div id="historyContainer" class="history-grid" style="display: none;"></div>
+
+                <div id="historyEmpty" class="empty-state-box" style="display: none;">
+                    <div class="empty-state-icon">📄</div>
+                    <div class="empty-state-title">No interviews completed yet</div>
+                    <p class="empty-state-copy">
+                        Start your first interview to practice with tailored questions, receive live AI feedback, and view your performance metrics.
+                    </p>
+                    <a href="/setup" class="btn btn-primary" style="padding: 12px 24px;">
+                        Start Your First Interview →
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <span>Interview Analyzer &copy; 2026 — Candidate Dashboard</span>
+            <span>Multimodal Performance Analyser</span>
+        </footer>
+    </div>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/auth-guard.js"></script>
+    <script src="/assets/js/dashboard.js"></script>
+</body>
+</html>

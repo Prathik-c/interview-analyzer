@@ -1,5 +1,10 @@
 /* Consolidated Stylesheet Importing Modular Components */
 @import url('/assets/css/global.css');
 @import url('/assets/css/components.css');
+@import url('/assets/css/landing.css');
+@import url('/assets/css/auth.css');
+@import url('/assets/css/dashboard.css');
+@import url('/assets/css/setup.css');
+@import url('/assets/css/ready.css');
 @import url('/assets/css/interview.css');
 @import url('/assets/css/results.css');

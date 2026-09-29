@@ -30,6 +30,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("speechScoreVal").textContent = `${evaluation.speech_score}%`;
         document.getElementById("videoScoreVal").textContent = `${evaluation.video_score}%`;
 
+        // Animate metric bars
+        const nlpBar = document.getElementById("nlpBarFill");
+        const speechBar = document.getElementById("speechBarFill");
+        const videoBar = document.getElementById("videoBarFill");
+        if (nlpBar) nlpBar.style.width = `${evaluation.nlp_score}%`;
+        if (speechBar) speechBar.style.width = `${evaluation.speech_score}%`;
+        if (videoBar) videoBar.style.width = `${evaluation.video_score}%`;
+
+        // Wire logout button
+        const logoutBtn = document.getElementById("appLogoutBtn");
+        if (logoutBtn) {
+            logoutBtn.onclick = () => {
+                if (window.Auth) Auth.logout();
+                else {
+                    localStorage.removeItem("auth_token");
+                    window.location.href = "/login";
+                }
+            };
+        }
+
         // Strengths
         const strengthsList = document.getElementById("strengthsList");
         strengthsList.innerHTML = (evaluation.strengths || []).map(s => `<li><span>✓</span> ${UI.escapeHtml(s)}</li>`).join("");

@@ -46,6 +46,35 @@ class SessionStorage:
                 print(f"JSON legacy load error for {session_id}: {e}")
         return None
 
+    def get_user_sessions(self, user_id: str) -> List[dict]:
+        """Fetch all assessment sessions belonging to a user, ordered by creation date desc."""
+        db: Session = SessionLocal()
+        try:
+            db_sessions = db.query(AssessmentSessionDB).filter(
+                AssessmentSessionDB.user_id == user_id
+            ).order_by(AssessmentSessionDB.created_at.desc()).all()
+
+            results = []
+            for s in db_sessions:
+                eval_data = None
+                if s.evaluation:
+                    eval_data = {
+                        "overall_score": s.evaluation.overall_score,
+                        "nlp_score": s.evaluation.nlp_score,
+                        "speech_score": s.evaluation.speech_score,
+                        "video_score": s.evaluation.video_score
+                    }
+                results.append({
+                    "session_id": s.session_id,
+                    "selected_role": s.selected_role,
+                    "status": s.status,
+                    "created_at": s.created_at.isoformat() if s.created_at else None,
+                    "evaluation": eval_data
+                })
+            return results
+        finally:
+            db.close()
+
     def save_session(self, session: AssessmentSession) -> bool:
         """Persist assessment session to Database & write JSON backup."""
         # 1. Write JSON file audit backup

@@ -136,7 +136,29 @@ const API = {
             throw new Error(err.detail || "Evaluation failed.");
         }
         return await response.json();
+    },
+
+    async getJobRoles() {
+        const response = await fetch("/api/interview/roles");
+        if (!response.ok) {
+            return [];
+        }
+        const data = await response.json();
+        return data.roles || [];
+    },
+
+    async getUserHistory() {
+        const response = await fetch("/api/interview/history", {
+            headers: this.getAuthHeaders()
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || "Could not fetch interview history.");
+        }
+        const data = await response.json();
+        return data.sessions || [];
     }
 };
 
 window.API = API;
+
