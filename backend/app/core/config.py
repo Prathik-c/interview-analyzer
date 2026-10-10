@@ -40,6 +40,10 @@ class Settings:
     WEIGHT_SPEECH: float = float(os.getenv("WEIGHT_SPEECH", "0.25"))
     WEIGHT_VIDEO: float = float(os.getenv("WEIGHT_VIDEO", "0.25"))
 
+    # Local Structured Evaluation Settings (Zero-Cost Local Layer)
+    STRUCTURED_EVALUATION_ENABLED: bool = os.getenv("STRUCTURED_EVALUATION_ENABLED", "true").lower() == "true"
+    STRUCTURED_EVALUATION_WEIGHT: float = float(os.getenv("STRUCTURED_EVALUATION_WEIGHT", "0.25"))
+
     def __init__(self):
         # Validate evaluation weights sum to 1.0
         total_weight = round(self.WEIGHT_NLP + self.WEIGHT_SPEECH + self.WEIGHT_VIDEO, 2)

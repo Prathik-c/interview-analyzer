@@ -124,7 +124,7 @@ class InterviewService:
 
         sp_score = submission.speech_metrics.speech_score if submission.speech_metrics else 80
         vi_score = submission.video_metrics.video_score if submission.video_metrics else 82
-        nlp_score = nlp_eval.get("overall_nlp_score", 80)
+        nlp_score = nlp_eval.get("combined_nlp_score", nlp_eval.get("overall_nlp_score", 80))
 
         # Calculate Per-Question Score (50% NLP, 25% Speech, 25% Video)
         per_q_score = performance_service.calculate_per_question_score(nlp_score, sp_score, vi_score)
@@ -142,6 +142,15 @@ class InterviewService:
             topics.append(current_q.topic)
         diff_prog = state_data.get("difficulty_progression", [])
         diff_prog.append(current_q.difficulty or "MEDIUM")
+
+        if nlp_eval.get("major_misconception"):
+            misconceptions = state_data.get("misconceptions_detected", [])
+            misconceptions.append({
+                "question_id": question_id,
+                "question": current_q.question,
+                "needs_followup": nlp_eval.get("needs_followup", True)
+            })
+            state_data["misconceptions_detected"] = misconceptions
 
         state_data["strengths"] = list(set(strengths))
         state_data["knowledge_gaps"] = list(set(gaps))

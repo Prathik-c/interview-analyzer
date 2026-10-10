@@ -27,6 +27,9 @@ class QuestionEvaluation(BaseModel):
     video_score: int
     feedback: str
     transcript: Optional[str] = ""
+    structured_score: Optional[int] = None
+    major_misconception: Optional[bool] = None
+    needs_followup: Optional[bool] = None
 
 class MultimodalEvaluation(BaseModel):
     overall_score: int
