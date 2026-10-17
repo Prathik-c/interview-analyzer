@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 3. Update Welcome Message with User's Name
     const welcomeHeading = document.getElementById("welcomeUserHeading");
     if (welcomeHeading && user.name) {
-        welcomeHeading.textContent = `Welcome back, ${user.name} 👋`;
+        welcomeHeading.textContent = `Welcome back, ${user.name}`;
     }
 
     // 4. Fetch and render user history

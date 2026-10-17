@@ -59,8 +59,8 @@ DEFAULT_JOB_ROLES = [
 ]
 
 FILLER_WORDS = [
-    "um", "uh", "like", "actually", "basically", "you know",
-    "i mean", "sort of", "kind of", "right", "honestly", "literally"
+    "um", "umm", "uh", "hmm", "er", "ah", "like", "actually", "basically",
+    "you know", "i mean", "sort of", "kind of", "right", "honestly", "literally"
 ]
 
 # Speech pacing standards

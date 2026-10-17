@@ -10,8 +10,10 @@ class AnswerSubmission(BaseModel):
     audio_path: Optional[str] = None
     video_path: Optional[str] = None
     transcript: Optional[str] = ""
-    speech_metrics: Optional[SpeechMetrics] = Field(default_factory=SpeechMetrics)
-    video_metrics: Optional[VideoMetrics] = Field(default_factory=VideoMetrics)
+    transcription_status: Optional[str] = "no_recording"  # no_recording | ok | empty | failed
+    speech_metrics: Optional[SpeechMetrics] = None
+    video_metrics: Optional[VideoMetrics] = None
+    nlp_evaluation: Optional[Dict[str, Any]] = None
 
 class AssessmentSession(BaseModel):
     session_id: str

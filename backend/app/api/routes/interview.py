@@ -1,6 +1,9 @@
 from typing import Optional
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, Depends
+from fastapi.responses import StreamingResponse
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
+import io
 from backend.app.services.interview_service import interview_service
 from backend.app.storage.session_storage import session_storage
 from backend.app.api.deps import get_current_user_optional, get_current_user
@@ -38,7 +41,8 @@ async def start_interview(
     """Start an interview session without PDF upload (fallback)."""
     user_id = current_user.id if current_user else None
     # Create empty resume content placeholder
-    session = interview_service.create_interview_session(
+    session = await run_in_threadpool(
+        interview_service.create_interview_session,
         selected_role=req.selected_role,
         filename="manual_start.pdf",
         pdf_content=b"%PDF-1.4 sample empty pdf content",
@@ -57,7 +61,8 @@ async def save_interview_answer(
     current_user: Optional[UserDB] = Depends(get_current_user_optional)
 ):
     user_id = current_user.id if current_user else None
-    res = interview_service.process_answer_submission(
+    res = await run_in_threadpool(
+        interview_service.process_answer_submission,
         session_id=request.session_id,
         question_id=request.question_id,
         user_id=user_id,
@@ -83,7 +88,8 @@ async def upload_question_recording(
         raise HTTPException(status_code=400, detail="Either video recording file or text answer is required.")
 
     try:
-        res = interview_service.process_answer_submission(
+        res = await run_in_threadpool(
+            interview_service.process_answer_submission,
             session_id=session_id,
             question_id=question_id,
             user_id=user_id,
@@ -130,3 +136,62 @@ async def get_interview_session(
         "current_question_number": session.current_question_number,
         "state_data": session.state_data
     }
+
+
+@router.post("/interview/{session_id}/abandon")
+async def abandon_interview_session(
+    session_id: str,
+    current_user: Optional[UserDB] = Depends(get_current_user_optional)
+):
+    """Mark an active interview session as abandoned without completing it.
+    Partial answers are preserved but the session is not counted as completed.
+    """
+    session = session_storage.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Interview session not found.")
+
+    if current_user and session.user_id and session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied: You do not own this interview session.")
+
+    if session.status in ("completed",):
+        raise HTTPException(status_code=400, detail="Cannot abandon a completed session.")
+
+    session.status = "abandoned"
+    session_storage.save_session(session)
+
+    return {
+        "accepted": True,
+        "session_id": session_id,
+        "status": "abandoned",
+        "questions_answered": len(session.submissions)
+    }
+
+
+@router.get("/interview/{session_id}/report")
+async def download_pdf_report(
+    session_id: str,
+    current_user: Optional[UserDB] = Depends(get_current_user_optional)
+):
+    """Generate and stream a PDF interview report for a completed session."""
+    session = session_storage.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Interview session not found.")
+
+    if current_user and session.user_id and session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied: You do not own this interview report.")
+
+    if not session.evaluation:
+        raise HTTPException(status_code=400, detail="Interview evaluation not yet completed. Finish the interview first.")
+
+    try:
+        from backend.app.services.report_service import report_service
+        pdf_bytes = report_service.generate_pdf_report(session)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}") from e
+
+    filename = f"interview_report_{session_id[:8]}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )

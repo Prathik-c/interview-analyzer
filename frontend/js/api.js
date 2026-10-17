@@ -107,11 +107,14 @@ const API = {
         return await response.json();
     },
 
-    async uploadRecording(sessionId, questionId, videoBlob) {
+    async uploadRecording(sessionId, questionId, videoBlob, answerText = "") {
         const formData = new FormData();
         formData.append("question_id", questionId);
         if (videoBlob) {
             formData.append("video", videoBlob, `question_${questionId}.webm`);
+        }
+        if (answerText) {
+            formData.append("answer", answerText);
         }
 
         const response = await fetch(`/api/interview/${encodeURIComponent(sessionId)}/recording`, {
@@ -157,6 +160,29 @@ const API = {
         }
         const data = await response.json();
         return data.sessions || [];
+    },
+
+    async abandonSession(sessionId) {
+        const response = await fetch(`/api/interview/${encodeURIComponent(sessionId)}/abandon`, {
+            method: "POST",
+            headers: this.getAuthHeaders()
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || "Could not abandon session.");
+        }
+        return await response.json();
+    },
+
+    async downloadReport(sessionId) {
+        const response = await fetch(`/api/interview/${encodeURIComponent(sessionId)}/report`, {
+            headers: this.getAuthHeaders()
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || "Report generation failed.");
+        }
+        return response; // caller handles blob download
     }
 };
 

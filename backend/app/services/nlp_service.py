@@ -52,6 +52,7 @@ Output ONLY valid JSON matching this schema:
 
 import logging
 from backend.app.services.structured_evaluator import structured_evaluator
+from backend.app.services.answer_quality import classify_answer
 
 logger = logging.getLogger("nlp_service")
 
@@ -73,7 +74,13 @@ class NLPService:
         resume_context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Evaluate a single question answer via Groq LLM with optional local structured evaluation layer."""
-        if not transcript or not transcript.strip():
+        quality = classify_answer(transcript or "")
+        if quality in ("no_speech", "non_answer"):
+            feedback = (
+                "No speech was detected for this answer."
+                if quality == "no_speech"
+                else "The question was not answered."
+            )
             empty_structured = {
                 "technical_correctness": 0,
                 "relevance": 0,
@@ -83,35 +90,38 @@ class NLPService:
                 "structured_score": 0
             }
             return {
-                "technical_score": 30,
-                "relevance_score": 30,
-                "depth_score": 30,
-                "clarity_score": 30,
-                "overall_nlp_score": 30,
+                "technical_score": 0,
+                "relevance_score": 0,
+                "depth_score": 0,
+                "clarity_score": 0,
+                "overall_nlp_score": 0,
+                "combined_nlp_score": 0,
+                "evaluation_method": "rule_based",
+                "feedback": feedback,
                 "strengths": [],
                 "knowledge_gaps": ["Question was left unanswered."],
                 "topics_detected": [],
-                "feedback": "No verbal answer was detected for this question.",
                 "structured_evaluation": empty_structured if getattr(settings, "STRUCTURED_EVALUATION_ENABLED", True) else None,
                 "structured_score": 0 if getattr(settings, "STRUCTURED_EVALUATION_ENABLED", True) else None,
-                "combined_nlp_score": 30,
                 "major_misconception": False,
                 "needs_followup": True
             }
 
         # Step 1: Run primary Groq evaluation
-        groq_result: Dict[str, Any]
+        groq_result: Optional[Dict[str, Any]] = None
         if not self.client:
             groq_result = {
-                "technical_score": 82,
-                "relevance_score": 88,
-                "depth_score": 78,
-                "clarity_score": 85,
-                "overall_nlp_score": 83,
-                "strengths": ["Clear explanation of core technical concepts."],
-                "knowledge_gaps": ["Could provide more concrete production examples."],
-                "topics_detected": [question.topic or "Technical"],
-                "feedback": "Solid answer covering fundamental principles."
+                "technical_score": None,
+                "relevance_score": None,
+                "depth_score": None,
+                "clarity_score": None,
+                "overall_nlp_score": None,
+                "evaluation_status": "evaluation_failed",
+                "evaluation_error": "Groq client not configured or API key missing.",
+                "strengths": [],
+                "knowledge_gaps": ["Groq API key not configured."],
+                "topics_detected": [question.topic] if question.topic else [],
+                "feedback": "NLP evaluation unavailable: Groq API key not configured."
             }
         else:
             user_prompt = f"""Job Role: {job_title}
@@ -119,39 +129,53 @@ Question: {question.question} (Topic: {question.topic})
 Resume Context: {json.dumps(resume_context)}
 Candidate Transcript: {transcript}"""
 
-            try:
-                response = self.client.chat.completions.create(
-                    model=settings.GROQ_LLM_MODEL,
-                    max_tokens=1500,
-                    temperature=0,
-                    response_format={"type": "json_object"},
-                    messages=[
-                        {"role": "system", "content": SINGLE_QUESTION_NLP_PROMPT},
-                        {"role": "user", "content": user_prompt}
-                    ]
-                )
-                raw = response.choices[0].message.content.strip()
-                parsed = json.loads(raw)
-                if "overall_nlp_score" not in parsed:
-                    parsed["overall_nlp_score"] = int((
-                        parsed.get("technical_score", 80) * 0.4 +
-                        parsed.get("relevance_score", 80) * 0.2 +
-                        parsed.get("depth_score", 80) * 0.2 +
-                        parsed.get("clarity_score", 80) * 0.2
-                    ))
-                groq_result = parsed
-            except Exception as e:
-                logger.error(f"Groq single answer evaluation error: {e}")
+            groq_result = None
+            last_err = None
+            for attempt in range(2):
+                try:
+                    response = self.client.chat.completions.create(
+                        model=settings.GROQ_LLM_MODEL,
+                        max_tokens=1500,
+                        temperature=0,
+                        response_format={"type": "json_object"},
+                        messages=[
+                            {"role": "system", "content": SINGLE_QUESTION_NLP_PROMPT},
+                            {"role": "user", "content": user_prompt}
+                        ]
+                    )
+                    raw = response.choices[0].message.content.strip()
+                    parsed = json.loads(raw)
+                    if "overall_nlp_score" not in parsed:
+                        parsed["overall_nlp_score"] = int((
+                            parsed.get("technical_score", 80) * 0.4 +
+                            parsed.get("relevance_score", 80) * 0.2 +
+                            parsed.get("depth_score", 80) * 0.2 +
+                            parsed.get("clarity_score", 80) * 0.2
+                        ))
+                    groq_result = parsed
+                    break
+                except Exception as e:
+                    last_err = e
+                    if attempt == 0:
+                        logger.warning(f"[Groq API Error in evaluate_single_answer attempt 1] {type(e).__name__}: {e}. Retrying once...")
+                    else:
+                        error_msg = f"[Groq API Error in evaluate_single_answer attempt 2] {type(e).__name__}: {e}"
+                        logging.error(error_msg, exc_info=True)
+                        logger.error(error_msg, exc_info=True)
+
+            if not groq_result:
                 groq_result = {
-                    "technical_score": 75,
-                    "relevance_score": 80,
-                    "depth_score": 70,
-                    "clarity_score": 80,
-                    "overall_nlp_score": 76,
-                    "strengths": ["Clear explanation."],
+                    "technical_score": None,
+                    "relevance_score": None,
+                    "depth_score": None,
+                    "clarity_score": None,
+                    "overall_nlp_score": None,
+                    "evaluation_status": "evaluation_failed",
+                    "evaluation_error": str(last_err),
+                    "strengths": [],
                     "knowledge_gaps": [],
-                    "topics_detected": [question.topic or "General"],
-                    "feedback": f"Answer parsed successfully: {e}"
+                    "topics_detected": [question.topic] if question.topic else [],
+                    "feedback": f"NLP evaluation unavailable: {last_err}"
                 }
 
         # Step 2: Run secondary local structured evaluation if enabled
@@ -175,25 +199,50 @@ Candidate Transcript: {transcript}"""
         elif not enabled:
             logger.info("Structured evaluation disabled — using Groq only")
 
-        # Step 3: Combine scores safely (default: 75% Groq, 25% Structured)
-        groq_score = groq_result.get("overall_nlp_score", 80)
-        if structured_res and "structured_score" in structured_res:
+        # Step 3: Combine scores without inventing numbers
+        groq_score = groq_result.get("overall_nlp_score")
+        struct_score = structured_res.get("structured_score") if structured_res else None
+
+        if groq_score is not None and struct_score is not None:
             weight = getattr(settings, "STRUCTURED_EVALUATION_WEIGHT", 0.25)
             groq_weight = 1.0 - weight
-            struct_score = structured_res["structured_score"]
             combined_score = int(round(groq_weight * groq_score + weight * struct_score))
+            eval_method = "combined"
+        elif groq_score is not None:
+            combined_score = groq_score
+            eval_method = "groq_only"
+        elif struct_score is not None:
+            combined_score = struct_score
+            eval_method = "local_only"
+        else:
+            combined_score = None
+            eval_method = "evaluation_failed"
 
+        groq_result["combined_nlp_score"] = combined_score
+        groq_result["evaluation_method"] = eval_method
+
+        if structured_res:
             groq_result["structured_evaluation"] = structured_res
-            groq_result["structured_score"] = struct_score
-            groq_result["combined_nlp_score"] = combined_score
-            groq_result["major_misconception"] = structured_res.get("major_misconception", False)
-            groq_result["needs_followup"] = structured_res.get("needs_followup", False)
+            groq_result["structured_score"]      = struct_score
+            groq_result["major_misconception"]   = structured_res.get("major_misconception", False)
+            groq_result["needs_followup"]        = structured_res.get("needs_followup", False)
+            groq_result["covered_concepts"]    = structured_res.get("covered_concepts", [])
+            groq_result["missing_concepts"]    = structured_res.get("missing_concepts", [])
+            groq_result["partial_concepts"]    = structured_res.get("partial_concepts", [])
+            groq_result["misconceptions"]      = structured_res.get("misconceptions", [])
+            groq_result["reasoning_summary"]   = structured_res.get("reasoning_summary", "")
+            groq_result["evidence"]            = structured_res.get("evidence", [])
         else:
             groq_result["structured_evaluation"] = None
-            groq_result["structured_score"] = None
-            groq_result["combined_nlp_score"] = groq_score
-            groq_result["major_misconception"] = False
-            groq_result["needs_followup"] = False
+            groq_result["structured_score"]      = None
+            groq_result["major_misconception"]   = False
+            groq_result["needs_followup"]        = False
+            groq_result["covered_concepts"]      = []
+            groq_result["missing_concepts"]      = []
+            groq_result["partial_concepts"]      = []
+            groq_result["misconceptions"]        = []
+            groq_result["reasoning_summary"]     = ""
+            groq_result["evidence"]              = []
 
         return groq_result
 
@@ -219,49 +268,65 @@ Candidate Transcript: {transcript}"""
         if not self.client:
             per_q = []
             for item in transcript_items:
-                has_ans = bool(item["answer"] and item["answer"] != "(No answer provided)")
                 per_q.append({
                     "question_id": item["question_id"],
                     "question": item["question"],
-                    "score": 85 if has_ans else 30,
-                    "feedback": "Demonstrated solid technical understanding." if has_ans else "Question was unanswered."
+                    "score": None,
+                    "feedback": "NLP evaluation unavailable: Groq API key not configured."
                 })
             return {
-                "overall_score": 85,
-                "summary": f"Strong demonstration of technical knowledge suited for the {job_title} role.",
-                "strengths": [
-                    "Clear communication of core technical concepts",
-                    "Good alignment with candidate's stated resume skills",
-                    "Structured reasoning in system design"
-                ],
-                "gaps": [
-                    "Could elaborate further with specific production metrics",
-                    "Add more concrete architectural trade-off comparisons"
-                ],
-                "recommendations": [
-                    "Practice STAR format for situational questions",
-                    "Highlight quantitative impact in technical project descriptions"
-                ],
+                "overall_score": None,
+                "evaluation_status": "evaluation_failed",
+                "summary": "Automated NLP evaluation unavailable: Groq API key not configured.",
+                "strengths": [],
+                "gaps": [],
+                "recommendations": ["Configure GROQ_API_KEY in .env and retry evaluation."],
                 "per_question": per_q
             }
 
         user_prompt = f"Job Role: {job_title}\nResume Info: {json.dumps(resume_data)}\nTranscript: {json.dumps(transcript_items)}"
 
-        try:
-            response = self.client.chat.completions.create(
-                model=settings.GROQ_LLM_MODEL,
-                max_tokens=3000,
-                temperature=0,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": FULL_EVALUATION_PROMPT},
-                    {"role": "user", "content": user_prompt}
-                ]
-            )
-            raw = response.choices[0].message.content.strip()
-            return json.loads(raw)
-        except Exception as e:
-            print(f"Groq evaluation error: {e}")
-            raise ValueError(f"NLP Evaluation failed: {e}") from e
+        last_err = None
+        for attempt in range(2):
+            try:
+                response = self.client.chat.completions.create(
+                    model=settings.GROQ_LLM_MODEL,
+                    max_tokens=3000,
+                    temperature=0,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": FULL_EVALUATION_PROMPT},
+                        {"role": "user", "content": user_prompt}
+                    ]
+                )
+                raw = response.choices[0].message.content.strip()
+                return json.loads(raw)
+            except Exception as e:
+                last_err = e
+                if attempt == 0:
+                    logger.warning(f"[Groq API Error in evaluate_interview_transcript attempt 1] {type(e).__name__}: {e}. Retrying once...")
+                else:
+                    error_msg = f"[Groq API Error in evaluate_interview_transcript attempt 2] {type(e).__name__}: {e}"
+                    logging.error(error_msg, exc_info=True)
+                    logger.error(error_msg, exc_info=True)
+
+        # Fallback when Groq fails after retry: do NOT return fake scores
+        per_q = []
+        for item in transcript_items:
+            per_q.append({
+                "question_id": item["question_id"],
+                "question": item["question"],
+                "score": None,
+                "feedback": f"NLP evaluation unavailable due to provider error: {last_err}"
+            })
+        return {
+            "overall_score": None,
+            "evaluation_status": "evaluation_failed",
+            "summary": f"Automated NLP evaluation failed ({last_err}).",
+            "strengths": [],
+            "gaps": [],
+            "recommendations": ["Re-attempt interview or verify LLM configuration."],
+            "per_question": per_q
+        }
 
 nlp_service = NLPService()

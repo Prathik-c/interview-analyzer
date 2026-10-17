@@ -14,11 +14,12 @@ class SubmissionDB(Base):
     transcript = Column(Text, nullable=True)
     word_count = Column(Integer, default=0)
     duration_seconds = Column(Float, default=0.0)
-    transcription_status = Column(String(50), default="COMPLETED")
+    transcription_status = Column(String(50), default="no_recording")
     audio_path = Column(String(512), nullable=True)
     video_path = Column(String(512), nullable=True)
     speech_metrics = Column(JSON, nullable=True)
     video_metrics = Column(JSON, nullable=True)
+    nlp_evaluation = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("AssessmentSessionDB", back_populates="submissions")

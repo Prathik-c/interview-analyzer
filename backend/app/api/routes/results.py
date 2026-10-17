@@ -1,5 +1,6 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi.concurrency import run_in_threadpool
 from backend.app.services.interview_service import interview_service
 from backend.app.storage.session_storage import session_storage
 from backend.app.api.deps import get_current_user_optional
@@ -24,7 +25,7 @@ async def evaluate_interview(
 
     user_id = current_user.id if current_user else None
     try:
-        updated_session = interview_service.evaluate_session(session_id, user_id=user_id)
+        updated_session = await run_in_threadpool(interview_service.evaluate_session, session_id, user_id=user_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Multimodal evaluation failed: {e}") from e
 
@@ -49,7 +50,7 @@ async def get_results(
     if not session.evaluation:
         # Run evaluation if session completed but evaluation not cached
         user_id = current_user.id if current_user else None
-        session = interview_service.evaluate_session(session_id, user_id=user_id)
+        session = await run_in_threadpool(interview_service.evaluate_session, session_id, user_id=user_id)
 
     return {
         "session_id": session_id,

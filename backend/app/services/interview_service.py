@@ -1,6 +1,9 @@
+import logging
+import concurrent.futures
+from collections import defaultdict
 from uuid import uuid4
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from backend.app.schemas.interview import AssessmentSession, AnswerSubmission
 from backend.app.schemas.question import QuestionItem
 from backend.app.core.constants import AssessmentType
@@ -16,7 +19,28 @@ from backend.app.services.adaptive_engine import adaptive_engine
 from backend.app.services.performance_service import performance_service
 from fastapi import HTTPException, status
 
+logger = logging.getLogger("interview_service")
+
+_video_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="video_analysis")
+
+
 class InterviewService:
+    def __init__(self):
+        self._video_futures: Dict[str, List[concurrent.futures.Future]] = defaultdict(list)
+
+    def _run_background_video_analysis(self, session_id: str, question_id: int, rec_path: Path):
+        """Runs video analysis in background thread and writes ONLY video_metrics via targeted update."""
+        try:
+            metrics = video_service.analyze_video_recording(rec_path)
+            # Step E: targeted update — never call get_session/save_session from background
+            ok = session_storage.update_video_metrics(session_id, question_id, metrics)
+            if ok:
+                logger.info(f"Background video analysis done session={session_id} q={question_id} method={metrics.analysis_method}")
+            else:
+                logger.info(f"Background video metrics buffered (pending) session={session_id} q={question_id}")
+        except Exception as e:
+            logger.error(f"Background video analysis failed session={session_id} q={question_id}: {e}", exc_info=True)
+
     def create_interview_session(
         self,
         selected_role: str,
@@ -100,21 +124,39 @@ class InterviewService:
             audio_path = audio_service.extract_audio_from_webm(rec_path)
             submission.audio_path = str(audio_path)
             
-            stt_transcript, duration = speech_service.transcribe_audio(audio_path)
+            stt_transcript, duration, word_timestamps = speech_service.transcribe_audio(audio_path)
+            
             if stt_transcript:
                 submission.transcript = stt_transcript
-            elif not submission.transcript:
+                from backend.app.services.answer_quality import classify_answer
+                if classify_answer(stt_transcript) == "no_speech":
+                    submission.transcription_status = "empty"
+                else:
+                    submission.transcription_status = "ok"
+            elif not submission.transcript and not submission.answer_text:
+                # No STT result and no text fallback — record this explicitly
+                submission.transcript = ""
+                submission.transcription_status = "empty"
+                logger.warning(f"Transcription returned empty for session={session_id} question={question_id}")
+            else:
+                # Use text answer as fallback only if explicitly provided by user
                 submission.transcript = submission.answer_text or ""
+                submission.transcription_status = "failed" if not stt_transcript else "ok"
 
-            # 3. Speech Delivery Metrics (WPM, filler word count)
+            # 3. Speech Delivery Metrics (WPM, filler words, pause detection)
             submission.speech_metrics = speech_service.analyze_speech_delivery(
-                submission.transcript or "", duration_seconds=duration
+                transcript=submission.transcript or "",
+                duration_seconds=duration,
+                audio_path=audio_path,
+                word_timestamps=word_timestamps
             )
 
-            # 4. OpenCV / MediaPipe Video Posture & Attention Analysis
-            submission.video_metrics = video_service.analyze_video_recording(rec_path)
+            # 4. Offload OpenCV / MediaPipe Video Analysis to BACKGROUND thread pool
+            submission.video_metrics = None
+            future = _video_executor.submit(self._run_background_video_analysis, session_id, question_id, rec_path)
+            self._video_futures[session_id].append(future)
 
-        # 5. Single-Question NLP Technical Evaluation
+        # 5. Single-Question NLP Technical Evaluation (fast)
         nlp_eval = nlp_service.evaluate_single_answer(
             job_title=session.selected_role,
             question=current_q,
@@ -122,12 +164,21 @@ class InterviewService:
             resume_context=session.resume_data or {}
         )
 
-        sp_score = submission.speech_metrics.speech_score if submission.speech_metrics else 80
-        vi_score = submission.video_metrics.video_score if submission.video_metrics else 82
+        is_text_only = performance_service._is_text_only(submission)
+        if is_text_only:
+            sp_score = None
+            vi_score = None
+        else:
+            sp_score = submission.speech_metrics.speech_score if submission.speech_metrics else None
+            vi_score = submission.video_metrics.video_score if submission.video_metrics else None
+
         nlp_score = nlp_eval.get("combined_nlp_score", nlp_eval.get("overall_nlp_score", 80))
 
-        # Calculate Per-Question Score (50% NLP, 25% Speech, 25% Video)
-        per_q_score = performance_service.calculate_per_question_score(nlp_score, sp_score, vi_score)
+        # Calculate Per-Question Score (using available signals honestly)
+        per_q_score = performance_service.calculate_per_question_score(
+            nlp_score, sp_score, vi_score, text_only=is_text_only
+        )
+        submission.nlp_evaluation = nlp_eval
 
         session.submissions[question_id] = submission
 
@@ -158,7 +209,7 @@ class InterviewService:
         state_data["difficulty_progression"] = diff_prog
         session.state_data = state_data
 
-        # 6. Adaptive Engine Decision for Next Question
+        # 6. Adaptive Engine Decision for Next Question (returns immediately to client)
         next_question_item = None
         max_questions = 5  # 5 questions total adaptively generated
 
@@ -170,8 +221,8 @@ class InterviewService:
                 current_question={"id": current_q.id, "text": current_q.question, "topic": current_q.topic},
                 transcript=submission.transcript or "",
                 nlp_score=nlp_score,
-                speech_score=sp_score,
-                video_score=vi_score,
+                speech_score=sp_score or 0,
+                video_score=vi_score or 0,
                 technical_strengths=nlp_eval.get("strengths", []),
                 knowledge_gaps=nlp_eval.get("knowledge_gaps", []),
                 mentioned_topics=nlp_eval.get("topics_detected", []),
@@ -223,6 +274,20 @@ class InterviewService:
 
         if user_id and session.user_id and session.user_id != user_id:
             raise HTTPException(status_code=403, detail="Access denied: You do not own this interview session.")
+
+        # Wait for any running background video analysis tasks up to 8s (or take whatever is done)
+        futures = self._video_futures.get(session_id, [])
+        if futures:
+            done, not_done = concurrent.futures.wait(futures, timeout=8.0)
+            logger.info(f"evaluate_session: {len(done)} video analysis tasks finished, {len(not_done)} still pending.")
+            fresh_session = session_storage.get_session(session_id)
+            if fresh_session:
+                session = fresh_session
+
+        # Ensure any submission with video but missing video_metrics is marked unavailable
+        for sub in session.submissions.values():
+            if sub.video_path and sub.video_metrics is None:
+                sub.video_metrics = video_service._unavailable_metrics("Video analysis pending or unavailable at evaluation time.")
 
         evaluation = performance_service.generate_multimodal_report(session)
         session.evaluation = evaluation

@@ -23,7 +23,9 @@ async def upload_resume(
 
     try:
         user_id = current_user.id if current_user else None
-        session = interview_service.create_interview_session(
+        from fastapi.concurrency import run_in_threadpool
+        session = await run_in_threadpool(
+            interview_service.create_interview_session,
             selected_role=selected_role,
             filename=file.filename or "resume.pdf",
             pdf_content=content,

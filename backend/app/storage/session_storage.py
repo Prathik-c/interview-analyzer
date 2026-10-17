@@ -1,6 +1,7 @@
 import json
+from collections import defaultdict
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from backend.app.core.config import settings
 from backend.app.db.session import SessionLocal, init_db
@@ -15,10 +16,13 @@ from backend.app.core.constants import AssessmentType
 
 class SessionStorage:
     """Repository handling assessment session persistence via SQLAlchemy ORM (PostgreSQL/SQLite)."""
-    
+
     def __init__(self, storage_dir: Path = settings.DATA_DIR):
         self.storage_dir = storage_dir
         self.storage_dir.mkdir(parents=True, exist_ok=True)
+        # Step E: pending video metrics for submissions not yet written to DB
+        # {session_id: {question_id: VideoMetrics}}
+        self._pending_video_metrics: Dict[str, Dict[int, Any]] = defaultdict(dict)
         try:
             init_db()
         except Exception as e:
@@ -75,6 +79,68 @@ class SessionStorage:
         finally:
             db.close()
 
+    # ── Step E: Targeted video update ───────────────────────────────────────────
+
+    def update_video_metrics(self, session_id: str, question_id: int, metrics) -> bool:
+        """Targeted update: set only video_metrics for (session_id, question_id).
+
+        If the SubmissionDB row doesn't exist yet (race condition),
+        store in pending dict to be merged when save_session() runs.
+        """
+        db: Session = SessionLocal()
+        try:
+            db_session = db.query(AssessmentSessionDB).filter(
+                AssessmentSessionDB.session_id == session_id
+            ).first()
+            if not db_session:
+                self._pending_video_metrics[session_id][question_id] = metrics
+                return False
+
+            db_sub = db.query(SubmissionDB).filter(
+                SubmissionDB.session_id == db_session.id,
+                SubmissionDB.question_id == question_id
+            ).first()
+            if not db_sub:
+                self._pending_video_metrics[session_id][question_id] = metrics
+                return False
+
+            # Write only video_metrics — do NOT touch any other column
+            db_sub.video_metrics = metrics.model_dump() if metrics else None
+
+            # Upsert VideoAnalysisDB row
+            db_vi = db.query(VideoAnalysisDB).filter(
+                VideoAnalysisDB.session_id == db_session.id,
+                VideoAnalysisDB.question_id == question_id
+            ).first()
+            if db_vi:
+                db_vi.face_visibility_score = metrics.face_visibility_score
+                db_vi.attention_score = metrics.attention_score
+                db_vi.posture_score = metrics.posture_score
+                db_vi.stability_score = metrics.stability_score
+                db_vi.video_score = metrics.video_score
+                db_vi.metrics_json = metrics.model_dump()
+            else:
+                db.add(VideoAnalysisDB(
+                    session_id=db_session.id,
+                    question_id=question_id,
+                    face_visibility_score=metrics.face_visibility_score,
+                    attention_score=metrics.attention_score,
+                    posture_score=metrics.posture_score,
+                    stability_score=metrics.stability_score,
+                    video_score=metrics.video_score,
+                    metrics_json=metrics.model_dump()
+                ))
+
+            db.commit()
+            self._pending_video_metrics.get(session_id, {}).pop(question_id, None)
+            return True
+        except Exception as e:
+            db.rollback()
+            print(f"update_video_metrics error session={session_id} q={question_id}: {e}")
+            return False
+        finally:
+            db.close()
+
     def save_session(self, session: AssessmentSession) -> bool:
         """Persist assessment session to Database & write JSON backup."""
         # 1. Write JSON file audit backup
@@ -112,35 +178,79 @@ class SessionStorage:
             db_session.current_question_number = session.current_question_number
             db_session.state_data = session.state_data
 
-            # Sync Questions
-            db.query(QuestionDB).filter(QuestionDB.session_id == db_session.id).delete()
+            # ── Step D: Upsert Questions by (session_id, question_id) ─────────
+            existing_qs = {
+                q.question_id: q
+                for q in db.query(QuestionDB).filter(QuestionDB.session_id == db_session.id).all()
+            }
             for q in session.questions:
-                db_q = QuestionDB(
-                    session_id=db_session.id,
-                    question_id=q.id,
-                    question_text=q.question,
-                    topic=q.topic,
-                    difficulty=q.difficulty or "MEDIUM",
-                    source=q.source or "role",
-                    strategy=q.strategy or "NEW_TOPIC",
-                    reason=q.reason
-                )
-                db.add(db_q)
+                if q.id in existing_qs:
+                    db_q = existing_qs[q.id]
+                    db_q.question_text = q.question
+                    db_q.topic = q.topic
+                    db_q.difficulty = q.difficulty or "MEDIUM"
+                    db_q.source = q.source or "role"
+                    db_q.strategy = q.strategy or "NEW_TOPIC"
+                    db_q.reason = q.reason
+                else:
+                    db.add(QuestionDB(
+                        session_id=db_session.id,
+                        question_id=q.id,
+                        question_text=q.question,
+                        topic=q.topic,
+                        difficulty=q.difficulty or "MEDIUM",
+                        source=q.source or "role",
+                        strategy=q.strategy or "NEW_TOPIC",
+                        reason=q.reason
+                    ))
 
-            # Sync Submissions
-            db.query(SubmissionDB).filter(SubmissionDB.session_id == db_session.id).delete()
+            # ── Steps B/D: Upsert Submissions by (session_id, question_id) ────
+            existing_subs = {
+                s.question_id: s
+                for s in db.query(SubmissionDB).filter(SubmissionDB.session_id == db_session.id).all()
+            }
             for q_id, sub in session.submissions.items():
-                db_sub = SubmissionDB(
-                    session_id=db_session.id,
-                    question_id=q_id,
-                    answer_text=sub.answer_text,
-                    transcript=sub.transcript,
-                    audio_path=sub.audio_path,
-                    video_path=sub.video_path,
-                    speech_metrics=sub.speech_metrics.model_dump() if sub.speech_metrics else None,
-                    video_metrics=sub.video_metrics.model_dump() if sub.video_metrics else None
-                )
-                db.add(db_sub)
+                # Step E: resolve effective video_metrics
+                # Priority: in-memory non-None > pending > leave DB untouched
+                pending_vm = self._pending_video_metrics.get(session.session_id, {}).get(q_id)
+                if sub.video_metrics is not None:
+                    effective_vm = sub.video_metrics
+                elif pending_vm is not None:
+                    effective_vm = pending_vm
+                else:
+                    effective_vm = None  # sentinel: do not overwrite DB
+
+                if q_id in existing_subs:
+                    db_sub = existing_subs[q_id]
+                    db_sub.answer_text = sub.answer_text
+                    db_sub.transcript = sub.transcript
+                    db_sub.audio_path = sub.audio_path
+                    db_sub.video_path = sub.video_path
+                    # Step B: persist transcription_status and nlp_evaluation
+                    db_sub.transcription_status = sub.transcription_status or "no_recording"
+                    db_sub.nlp_evaluation = sub.nlp_evaluation
+                    db_sub.speech_metrics = sub.speech_metrics.model_dump() if sub.speech_metrics else None
+                    # Step E: only overwrite video_metrics when we have a real value
+                    if effective_vm is not None:
+                        db_sub.video_metrics = effective_vm.model_dump() if hasattr(effective_vm, "model_dump") else effective_vm
+                    # else: leave DB video_metrics untouched
+                else:
+                    db_sub = SubmissionDB(
+                        session_id=db_session.id,
+                        question_id=q_id,
+                        answer_text=sub.answer_text,
+                        transcript=sub.transcript,
+                        audio_path=sub.audio_path,
+                        video_path=sub.video_path,
+                        transcription_status=sub.transcription_status or "no_recording",
+                        nlp_evaluation=sub.nlp_evaluation,
+                        speech_metrics=sub.speech_metrics.model_dump() if sub.speech_metrics else None,
+                        video_metrics=effective_vm.model_dump() if (effective_vm and hasattr(effective_vm, "model_dump")) else None
+                    )
+                    db.add(db_sub)
+
+                if pending_vm is not None:
+                    self._pending_video_metrics.get(session.session_id, {}).pop(q_id, None)
 
                 # Sync granular recordings metadata if path present
                 if sub.video_path:
@@ -176,24 +286,30 @@ class SessionStorage:
                         )
                         db.add(db_sp)
 
-                # Sync granular Video Analysis
-                if sub.video_metrics:
+                # Upsert VideoAnalysis row (only when we have real metrics)
+                if effective_vm and hasattr(effective_vm, "model_dump"):
                     db_vi = db.query(VideoAnalysisDB).filter(
                         VideoAnalysisDB.session_id == db_session.id,
                         VideoAnalysisDB.question_id == q_id
                     ).first()
-                    if not db_vi:
-                        db_vi = VideoAnalysisDB(
+                    if db_vi:
+                        db_vi.face_visibility_score = effective_vm.face_visibility_score
+                        db_vi.attention_score = effective_vm.attention_score
+                        db_vi.posture_score = effective_vm.posture_score
+                        db_vi.stability_score = effective_vm.stability_score
+                        db_vi.video_score = effective_vm.video_score
+                        db_vi.metrics_json = effective_vm.model_dump()
+                    else:
+                        db.add(VideoAnalysisDB(
                             session_id=db_session.id,
                             question_id=q_id,
-                            face_visibility_score=sub.video_metrics.face_visibility_score,
-                            attention_score=sub.video_metrics.attention_score,
-                            posture_score=sub.video_metrics.posture_score,
-                            stability_score=sub.video_metrics.stability_score,
-                            video_score=sub.video_metrics.video_score,
-                            metrics_json=sub.video_metrics.model_dump()
-                        )
-                        db.add(db_vi)
+                            face_visibility_score=effective_vm.face_visibility_score,
+                            attention_score=effective_vm.attention_score,
+                            posture_score=effective_vm.posture_score,
+                            stability_score=effective_vm.stability_score,
+                            video_score=effective_vm.video_score,
+                            metrics_json=effective_vm.model_dump()
+                        ))
 
             # Sync Evaluation
             if session.evaluation:
@@ -239,8 +355,9 @@ class SessionStorage:
 
         submissions = {}
         for sub in db_session.submissions:
-            sp_metrics = SpeechMetrics(**sub.speech_metrics) if sub.speech_metrics else SpeechMetrics()
-            vi_metrics = VideoMetrics(**sub.video_metrics) if sub.video_metrics else VideoMetrics()
+            # Step C: return None for missing metrics — NEVER SpeechMetrics() / VideoMetrics() defaults
+            sp_metrics = SpeechMetrics(**sub.speech_metrics) if sub.speech_metrics else None
+            vi_metrics = VideoMetrics(**sub.video_metrics) if sub.video_metrics else None
 
             submissions[sub.question_id] = AnswerSubmission(
                 question_id=sub.question_id,
@@ -248,19 +365,31 @@ class SessionStorage:
                 transcript=sub.transcript,
                 audio_path=sub.audio_path,
                 video_path=sub.video_path,
+                # Step B: load transcription_status and nlp_evaluation from DB
+                transcription_status=sub.transcription_status or "no_recording",
+                nlp_evaluation=sub.nlp_evaluation or None,
                 speech_metrics=sp_metrics,
-                video_metrics=vi_metrics
+                video_metrics=vi_metrics,
             )
 
         evaluation = None
         if db_session.evaluation:
             e = db_session.evaluation
             pq_list = [QuestionEvaluation(**item) for item in (e.per_question or [])]
+            modalities = []
+            if e.nlp_score is not None:
+                modalities.append("nlp")
+            if e.speech_score is not None:
+                modalities.append("speech")
+            if e.video_score is not None:
+                modalities.append("video")
+
             evaluation = MultimodalEvaluation(
                 overall_score=e.overall_score,
                 nlp_score=e.nlp_score,
                 speech_score=e.speech_score,
                 video_score=e.video_score,
+                modalities_used=modalities,
                 summary=e.summary or "",
                 strengths=e.strengths or [],
                 gaps=e.gaps or [],

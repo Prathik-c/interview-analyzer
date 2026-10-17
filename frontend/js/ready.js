@@ -47,10 +47,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                 videoOverlay.style.display = "flex";
             }
 
-            camStatusVal.textContent = "✓ Ready";
+            camStatusVal.textContent = "Ready";
             camStatusVal.className = "dev-status-val";
 
-            micStatusVal.textContent = "✓ Active";
+            micStatusVal.textContent = "Active";
             micStatusVal.className = "dev-status-val";
 
             setupMicVisualizer(mediaStream);

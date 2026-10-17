@@ -22,3 +22,5 @@ numpy
 pyjwt>=2.8.0
 passlib>=1.7.4
 bcrypt>=4.0.0
+fpdf2>=2.8.0
+pydub>=0.25.1

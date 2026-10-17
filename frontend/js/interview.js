@@ -1,70 +1,102 @@
+/**
+ * interview.js — Continuous Recording Flow
+ * Keeps camera/mic active across all questions.
+ * Each "Next Question" stops current question clip, immediately starts
+ * recording the next clip on the same stream, and uploads the previous clip.
+ */
+
 let timerInterval = null;
 let timerSeconds = 0;
+let isSubmitting = false;
+let interviewEnded = false;
+let pendingUpload = null; // Holds { blob, textAnswer, questionId, isLast } in case of retry
 
 document.addEventListener("DOMContentLoaded", async () => {
-    const videoElem = document.getElementById("webcamVideo");
-    const questionCard = document.getElementById("questionCard");
-    const recBadge = document.getElementById("recordingBadge");
-    const timerElem = document.getElementById("recordingTimer");
-    const startBtn = document.getElementById("startRecordBtn");
-    const stopBtn = document.getElementById("stopRecordBtn");
-    const finishBtn = document.getElementById("finishInterviewBtn");
-    const textAnswerInput = document.getElementById("textAnswerInput");
-    const saveTextBtn = document.getElementById("saveTextBtn");
-    const transcriptBox = document.getElementById("transcriptBox");
-    const statusMessage = document.getElementById("statusMessage");
+    const videoElem        = document.getElementById("webcamVideo");
+    const recBadge         = document.getElementById("recordingBadge");
+    const timerElem        = document.getElementById("recordingTimer");
+    const nextQuestionBtn  = document.getElementById("nextQuestionBtn");
+    const textAnswerInput  = document.getElementById("textAnswerInput");
+    const transcriptBox    = document.getElementById("transcriptBox");
+    const statusMessage    = document.getElementById("statusMessage");
+    const quitBtn          = document.getElementById("quitInterviewBtn");
+    const quitModal        = document.getElementById("quitConfirmModal");
+    const quitConfirmOk    = document.getElementById("quitConfirmOk");
+    const quitConfirmClose = document.getElementById("quitConfirmClose");
+    const completionBanner = document.getElementById("completionBanner");
+    const questionText     = document.getElementById("questionText");
+    const questionLoader   = document.getElementById("questionLoader");
+    const uploadRetryBox   = document.getElementById("uploadRetryBox");
+    const uploadRetryMsg   = document.getElementById("uploadRetryMsg");
+    const retryUploadBtn   = document.getElementById("retryUploadBtn");
 
-    if (!window.state.sessionId) {
-        if (statusMessage) statusMessage.textContent = "Session ID missing from URL. Please upload resume first.";
+    // ── Auth guard ──────────────────────────────────────────────────────────
+    if (window.Auth) {
+        const user = await Auth.requireAuth("/login");
+        if (!user) return;
+    }
+
+    if (!window.state || !window.state.sessionId) {
+        if (statusMessage) statusMessage.textContent = "Session ID missing. Please upload resume first.";
         return;
     }
 
-    // 1. Load Session Data
+    // ── Load session ─────────────────────────────────────────────────────────
     try {
         const session = await API.getSession(window.state.sessionId);
         window.state.setSession(session);
         renderCurrentQuestion();
     } catch (err) {
-        if (statusMessage) statusMessage.textContent = err.message;
+        if (statusMessage) statusMessage.textContent = err.message || "Failed to load session.";
         return;
     }
 
-    // 2. Start Camera Preview
+    // ── Start camera preview & auto-start continuous recording ──────────────
     if (videoElem) {
-        await window.cameraManager.startCamera(videoElem);
+        const camReady = await window.cameraManager.startCamera(videoElem);
+        if (camReady) {
+            startQuestionRecording();
+        } else {
+            if (statusMessage) {
+                statusMessage.innerHTML = "<span style='color:var(--status-amber, #f59e0b)'>Camera unavailable. Text answers will be used for evaluation.</span>";
+            }
+        }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UI Helpers
+    // ─────────────────────────────────────────────────────────────────────────
 
     function renderCurrentQuestion() {
         const q = window.state.getCurrentQuestion();
         if (!q) return;
 
         const topicElem = document.getElementById("questionTopic");
-        if (topicElem) {
-            topicElem.textContent = `${q.topic || "Technical"} • Difficulty: ${q.difficulty || "MEDIUM"}`;
-        }
-        
-        const numberElem = document.getElementById("questionNumber");
-        if (numberElem) {
-            numberElem.textContent = `Question ${window.state.currentQuestionIndex + 1} (Adaptive Stage)`;
-        }
+        if (topicElem) topicElem.textContent = `${q.topic || "Technical"} • Difficulty: ${q.difficulty || "MEDIUM"}`;
 
-        const textElem = document.getElementById("questionText");
-        if (textElem) {
-            textElem.textContent = q.question;
+        const numberElem = document.getElementById("questionNumber");
+        if (numberElem) numberElem.textContent = `Question ${window.state.currentQuestionIndex + 1} of 5`;
+
+        if (questionText) {
+            questionText.textContent = q.question;
+            questionText.style.display = "block";
+        }
+        if (questionLoader) {
+            questionLoader.style.display = "none";
         }
 
         const fillElem = document.getElementById("progressBarFill");
         if (fillElem) {
-            const progressPct = Math.min(100, ((window.state.currentQuestionIndex + 1) / 5) * 100);
-            fillElem.style.width = `${progressPct}%`;
+            const pct = Math.min(100, ((window.state.currentQuestionIndex + 1) / 5) * 100);
+            fillElem.style.width = `${pct}%`;
         }
 
-        // Check if question was already answered
+        // Restore already-answered transcript if revisiting
         const existingAns = window.state.answers.get(q.id);
         if (existingAns) {
             if (textAnswerInput) textAnswerInput.value = existingAns.answer || "";
             if (transcriptBox) {
-                transcriptBox.textContent = existingAns.answer ? `Processed Transcript: ${existingAns.answer}` : "";
+                transcriptBox.textContent = existingAns.answer ? `Transcript: ${existingAns.answer}` : "";
                 transcriptBox.hidden = !existingAns.answer;
             }
         } else {
@@ -72,213 +104,260 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (transcriptBox) transcriptBox.hidden = true;
         }
 
-        updateFinishButton();
+        updateNextButtonLabel();
     }
 
-    function updateFinishButton() {
-        if (finishBtn) {
-            const currentQ = window.state.getCurrentQuestion();
-            const isLast = (window.state.currentQuestionIndex >= 4) || (currentQ && currentQ.id >= 5);
-            if (isLast) {
-                finishBtn.hidden = false;
-                finishBtn.disabled = window.state.answers.size === 0;
+    function updateNextButtonLabel() {
+        if (!nextQuestionBtn) return;
+        const isLast = (window.state.currentQuestionIndex >= 4);
+        nextQuestionBtn.textContent = isLast ? "Finish Interview →" : "Next Question →";
+    }
+
+    function showQuestionLoading(loading) {
+        if (questionLoader) questionLoader.style.display = loading ? "flex" : "none";
+        if (questionText) questionText.style.display = loading ? "none" : "block";
+    }
+
+    function startTimer() {
+        stopTimer();
+        timerSeconds = 0;
+        if (timerElem) timerElem.textContent = "00:00";
+        timerInterval = setInterval(() => {
+            timerSeconds++;
+            const mins = String(Math.floor(timerSeconds / 60)).padStart(2, "0");
+            const secs = String(timerSeconds % 60).padStart(2, "0");
+            if (timerElem) timerElem.textContent = `${mins}:${secs}`;
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    function startQuestionRecording() {
+        if (interviewEnded) return;
+        const started = window.cameraManager.startRecording();
+        if (started) {
+            if (recBadge) recBadge.hidden = false;
+            startTimer();
+            if (statusMessage) {
+                statusMessage.innerHTML = `<span style="color:var(--accent-cyan)">● Recording Answer ${window.state.currentQuestionIndex + 1} of 5</span>`;
             }
         }
     }
 
-    async function showStageProgress() {
-        const procCard = document.getElementById("processingCard");
-        if (procCard) procCard.style.display = "block";
+    function showCompletionState() {
+        interviewEnded = true;
+        stopTimer();
+        window.cameraManager.cleanup();
 
-        const stepIds = ["procStep1", "procStep2", "procStep3", "procStep4", "procStep5", "procStep6"];
-        stepIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.className = "proc-step";
-                const b = el.querySelector(".step-bullet");
-                if (b) b.textContent = "○";
-            }
-        });
+        if (recBadge) recBadge.hidden = true;
+        if (nextQuestionBtn) {
+            nextQuestionBtn.disabled = true;
+            nextQuestionBtn.textContent = "Interview Completed";
+        }
+        if (quitBtn) quitBtn.style.display = "none";
+        if (uploadRetryBox) uploadRetryBox.style.display = "none";
 
-        for (let i = 0; i < stepIds.length; i++) {
-            const el = document.getElementById(stepIds[i]);
-            if (el) {
-                el.className = "proc-step active";
-                const b = el.querySelector(".step-bullet");
-                if (b) b.textContent = "●";
-            }
-            if (i > 0) {
-                const prev = document.getElementById(stepIds[i - 1]);
-                if (prev) {
-                    prev.className = "proc-step done";
-                    const pb = prev.querySelector(".step-bullet");
-                    if (pb) pb.textContent = "✓";
+        if (completionBanner) {
+            completionBanner.hidden = false;
+            completionBanner.scrollIntoView({ behavior: "smooth" });
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Answer Submission & Next Flow
+    // ─────────────────────────────────────────────────────────────────────────
+
+    async function submitAnswerFlow(dataToUpload) {
+        const { blob, textAnswer, questionId, isLast } = dataToUpload;
+
+        if (uploadRetryBox) uploadRetryBox.style.display = "none";
+
+        try {
+            // Upload recording + optional text answer
+            const res = await API.uploadRecording(window.state.sessionId, questionId, blob, textAnswer);
+
+            // Record transcript / answer
+            window.state.answers.set(questionId, {
+                question_id: questionId,
+                answer: res.transcript || textAnswer || ""
+            });
+
+            // Clear pending retry data on success
+            pendingUpload = null;
+
+            if (isLast) {
+                showCompletionState();
+                if (statusMessage) statusMessage.textContent = "Generating your multimodal evaluation report…";
+                try {
+                    await API.evaluateInterview(window.state.sessionId);
+                } catch (e) {
+                    console.warn("Evaluation completed with notice:", e);
+                }
+                setTimeout(() => {
+                    window.location.href = `/results?session_id=${encodeURIComponent(window.state.sessionId)}`;
+                }, 1800);
+            } else {
+                // Not last question: advance to next question
+                if (res.next_question) {
+                    const existingIdx = window.state.questions.findIndex(q => q.id === res.next_question.id);
+                    if (existingIdx >= 0) {
+                        window.state.questions[existingIdx] = res.next_question;
+                    } else {
+                        window.state.questions.push(res.next_question);
+                    }
+                    window.state.currentQuestionIndex = window.state.questions.length - 1;
+                } else {
+                    window.state.currentQuestionIndex = Math.min(window.state.questions.length - 1, window.state.currentQuestionIndex + 1);
+                }
+
+                showQuestionLoading(false);
+                renderCurrentQuestion();
+
+                // Start recording only when next question is displayed
+                startQuestionRecording();
+
+                if (nextQuestionBtn) {
+                    nextQuestionBtn.disabled = false;
+                    updateNextButtonLabel();
                 }
             }
-            await new Promise(r => setTimeout(r, 450));
-        }
-
-        const last = document.getElementById(stepIds[stepIds.length - 1]);
-        if (last) {
-            last.className = "proc-step done";
-            const lb = last.querySelector(".step-bullet");
-            if (lb) lb.textContent = "✓";
-        }
-        await new Promise(r => setTimeout(r, 300));
-        if (procCard) procCard.style.display = "none";
-    }
-
-    // Start Recording Action
-    if (startBtn) {
-        startBtn.addEventListener("click", () => {
-            const started = window.cameraManager.startRecording();
-            if (started) {
-                if (recBadge) recBadge.hidden = false;
-                startBtn.hidden = true;
-                if (stopBtn) stopBtn.hidden = false;
-                timerSeconds = 0;
-                if (timerElem) timerElem.textContent = "00:00";
-                timerInterval = setInterval(() => {
-                    timerSeconds++;
-                    const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-                    const secs = String(timerSeconds % 60).padStart(2, '0');
-                    if (timerElem) timerElem.textContent = `${mins}:${secs}`;
-                }, 1000);
+        } catch (err) {
+            console.error("Submission failed:", err);
+            // Save upload data so user can retry without losing their recording
+            pendingUpload = dataToUpload;
+            if (uploadRetryMsg) uploadRetryMsg.textContent = `Upload error: ${err.message || "Failed to submit recording."}`;
+            if (uploadRetryBox) uploadRetryBox.style.display = "block";
+            if (nextQuestionBtn) {
+                nextQuestionBtn.disabled = false;
+                nextQuestionBtn.textContent = "Retry Submitting Answer";
             }
-        });
+            showQuestionLoading(false);
+            if (questionText) questionText.style.display = "block";
+        } finally {
+            isSubmitting = false;
+        }
     }
 
-    // Stop Recording & Upload Action with Stage Feedback & Adaptive Question Insertion
-    if (stopBtn) {
-        stopBtn.addEventListener("click", async () => {
-            clearInterval(timerInterval);
-            stopBtn.disabled = true;
-            stopBtn.textContent = "Processing Multimodal Pipeline...";
+    if (nextQuestionBtn) {
+        nextQuestionBtn.addEventListener("click", async () => {
+            if (isSubmitting || interviewEnded) return;
 
-            const blob = await window.cameraManager.stopRecording();
-            if (recBadge) recBadge.hidden = true;
-            startBtn.hidden = false;
-            stopBtn.hidden = true;
-            stopBtn.disabled = false;
-            stopBtn.textContent = "Finish Answer & Submit";
+            // If we have a pending failed upload, clicking here retries it
+            if (pendingUpload) {
+                isSubmitting = true;
+                nextQuestionBtn.disabled = true;
+                nextQuestionBtn.textContent = "Retrying upload…";
+                await submitAnswerFlow(pendingUpload);
+                return;
+            }
 
             const currentQ = window.state.getCurrentQuestion();
             if (!currentQ) return;
 
-            try {
-                // Show processing stages
-                const stagePromise = showStageProgress();
-                const uploadPromise = API.uploadRecording(window.state.sessionId, currentQ.id, blob);
-                
-                const [_, res] = await Promise.all([stagePromise, uploadPromise]);
+            const isLast = (window.state.currentQuestionIndex >= 4) || (currentQ.id >= 5);
+            const textAnswer = textAnswerInput ? textAnswerInput.value.trim() : "";
 
-                window.state.answers.set(currentQ.id, {
-                    question_id: currentQ.id,
-                    answer: res.transcript
-                });
+            isSubmitting = true;
+            nextQuestionBtn.disabled = true;
+            nextQuestionBtn.textContent = isLast ? "Finishing interview…" : "Preparing next question…";
 
-                if (transcriptBox) {
-                    transcriptBox.hidden = false;
-                    transcriptBox.innerHTML = `<strong>Speech Transcript:</strong> ${res.transcript || "(No speech detected)"}<br><small style="color:var(--accent-cyan)">Technical NLP: ${res.nlp_score}/100 | WPM: ${res.speech_metrics?.words_per_minute || 0} | Fillers: ${res.speech_metrics?.filler_word_count || 0} | Posture: ${res.video_metrics?.posture_score || 85}%</small>`;
-                }
-                if (textAnswerInput) textAnswerInput.value = res.transcript || "";
+            // 1. Stop current question's recorder to get its WebM Blob
+            stopTimer();
+            if (recBadge) recBadge.hidden = true;
+            let blob = null;
+            if (window.cameraManager && window.cameraManager.isRecording) {
+                blob = await window.cameraManager.stopRecording();
+            }
 
-                // If next question adaptively generated, append it to state and navigate
-                if (res.next_question) {
-                    const existingIdx = window.state.questions.findIndex(q => q.id === res.next_question.id);
-                    if (existingIdx >= 0) {
-                        window.state.questions[existingIdx] = res.next_question;
-                    } else {
-                        window.state.questions.push(res.next_question);
-                    }
+            const dataToUpload = {
+                blob: blob,
+                textAnswer: textAnswer,
+                questionId: currentQ.id,
+                isLast: isLast
+            };
 
-                    statusMessage.innerHTML = `<span style="color:var(--success)">✓ Answer analyzed! Next Adaptive Question generated: <strong>[${res.next_question.topic}]</strong></span>`;
+            // 2. While waiting for next question, show loader and keep live preview
+            if (!isLast) {
+                showQuestionLoading(true);
+            }
 
-                    // Advance to next adaptive question after 2 seconds
-                    setTimeout(() => {
-                        window.state.currentQuestionIndex = window.state.questions.length - 1;
-                        renderCurrentQuestion();
-                        if (statusMessage) statusMessage.textContent = "";
-                    }, 2000);
-                } else if (res.is_last_question) {
-                    statusMessage.innerHTML = `<span style="color:var(--success)">✓ All interview questions completed! Click 'Complete & Finish Interview' for your final report.</span>`;
-                    updateFinishButton();
-                }
+            // 3. Upload current clip in parallel/background
+            await submitAnswerFlow(dataToUpload);
+        });
+    }
 
-            } catch (err) {
-                if (statusMessage) statusMessage.textContent = `Recording pipeline error: ${err.message}`;
+    if (retryUploadBtn) {
+        retryUploadBtn.addEventListener("click", async () => {
+            if (pendingUpload && !isSubmitting) {
+                isSubmitting = true;
+                if (nextQuestionBtn) nextQuestionBtn.disabled = true;
+                retryUploadBtn.disabled = true;
+                retryUploadBtn.textContent = "Retrying…";
+                await submitAnswerFlow(pendingUpload);
+                retryUploadBtn.disabled = false;
+                retryUploadBtn.textContent = "Retry Upload";
             }
         });
     }
 
-    // Manual Save Text Answer Action
-    if (saveTextBtn) {
-        saveTextBtn.addEventListener("click", async () => {
-            const currentQ = window.state.getCurrentQuestion();
-            const text = textAnswerInput ? textAnswerInput.value.trim() : "";
-            if (!text) {
-                if (window.UI) window.UI.showToast("Please enter an answer before saving.", "error");
-                return;
-            }
-            try {
-                saveTextBtn.disabled = true;
-                const res = await API.saveTextAnswer(window.state.sessionId, currentQ.id, text);
-                window.state.answers.set(currentQ.id, { question_id: currentQ.id, answer: text });
-                if (window.UI) window.UI.showToast("Text answer saved!", "success");
+    // ─────────────────────────────────────────────────────────────────────────
+    // Quit interview Modal
+    // ─────────────────────────────────────────────────────────────────────────
 
-                if (res.next_question) {
-                    const existingIdx = window.state.questions.findIndex(q => q.id === res.next_question.id);
-                    if (existingIdx >= 0) {
-                        window.state.questions[existingIdx] = res.next_question;
-                    } else {
-                        window.state.questions.push(res.next_question);
-                    }
-                    setTimeout(() => {
-                        window.state.currentQuestionIndex = window.state.questions.length - 1;
-                        renderCurrentQuestion();
-                    }, 1500);
-                }
-                updateFinishButton();
-            } catch (err) {
-                if (window.UI) window.UI.showToast(err.message, "error");
-            } finally {
-                saveTextBtn.disabled = false;
-            }
+    if (quitBtn && quitModal) {
+        quitBtn.addEventListener("click", () => {
+            quitModal.style.display = "flex";
         });
     }
 
-    // Stepper Navigation
-    document.getElementById("prevQuestionBtn")?.addEventListener("click", () => {
-        if (window.state.currentQuestionIndex > 0) {
-            window.state.currentQuestionIndex--;
-            renderCurrentQuestion();
+    if (quitConfirmClose) {
+        quitConfirmClose.addEventListener("click", () => {
+            if (quitModal) quitModal.style.display = "none";
+        });
+    }
+
+    if (quitConfirmOk) {
+        quitConfirmOk.addEventListener("click", async () => {
+            if (quitModal) quitModal.style.display = "none";
+            interviewEnded = true;
+            stopTimer();
+
+            if (window.cameraManager && window.cameraManager.isRecording) {
+                await window.cameraManager.stopRecording().catch(() => {});
+            }
+            if (window.cameraManager) {
+                window.cameraManager.cleanup();
+            }
+
+            try {
+                await API.abandonSession(window.state.sessionId);
+            } catch (e) {
+                console.warn("Could not mark session as abandoned:", e);
+            }
+
+            window.location.href = "/dashboard";
+        });
+    }
+
+    if (quitModal) {
+        quitModal.addEventListener("click", (e) => {
+            if (e.target === quitModal) quitModal.style.display = "none";
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Page Unload Cleanup
+    // ─────────────────────────────────────────────────────────────────────────
+
+    window.addEventListener("beforeunload", () => {
+        stopTimer();
+        if (window.cameraManager && !interviewEnded) {
+            window.cameraManager.cleanup();
         }
     });
-
-    document.getElementById("nextQuestionBtn")?.addEventListener("click", () => {
-        if (window.state.currentQuestionIndex < window.state.questions.length - 1) {
-            window.state.currentQuestionIndex++;
-            renderCurrentQuestion();
-        }
-    });
-
-    // Final Evaluate Action
-    if (finishBtn) {
-        finishBtn.addEventListener("click", async () => {
-            finishBtn.disabled = true;
-            finishBtn.textContent = "Generating Multimodal Evaluation...";
-            if (statusMessage) {
-                statusMessage.textContent = "Aggregating Groq NLP evaluations, Speech metrics, and MediaPipe posture records from PostgreSQL database...";
-            }
-            try {
-                const res = await API.evaluateInterview(window.state.sessionId);
-                if (window.cameraManager) window.cameraManager.stopCamera();
-                window.location.href = `/results?session_id=${encodeURIComponent(window.state.sessionId)}`;
-            } catch (err) {
-                if (statusMessage) statusMessage.textContent = err.message;
-                finishBtn.disabled = false;
-                finishBtn.textContent = "Complete & Finish Interview →";
-            }
-        });
-    }
 });

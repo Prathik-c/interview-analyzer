@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 class QuestionItem(BaseModel):
     id: int
@@ -9,6 +9,7 @@ class QuestionItem(BaseModel):
     source: Optional[str] = "role"  # resume | role | follow_up | remedial
     strategy: Optional[str] = "NEW_TOPIC"
     reason: Optional[str] = None
+    expected_concepts: Optional[List[str]] = Field(default_factory=list)
 
 class AdaptiveEngineDecision(BaseModel):
     next_difficulty: str = "MEDIUM"
