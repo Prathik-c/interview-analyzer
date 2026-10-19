@@ -133,6 +133,42 @@
                             </div>
                         </div>
 
+                        <!-- AI Interviewer Voice Controls -->
+                        <div class="voice-controls-panel" id="voiceControlsPanel" aria-label="AI Interviewer Voice Controls">
+                            <div class="voice-controls-group">
+                                <button type="button" id="voicePlayBtn" class="voice-btn voice-btn-listen" title="Listen to question aloud" aria-label="Listen to question aloud">
+                                    <svg class="voice-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                    </svg>
+                                    <span id="voicePlayText">Listen to Question</span>
+                                </button>
+
+                                <button type="button" id="voicePauseBtn" class="voice-btn voice-btn-action" title="Pause speech" aria-label="Pause interviewer voice" disabled>
+                                    <svg id="voicePauseIcon" class="voice-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="6" y="4" width="4" height="16"></rect>
+                                        <rect x="14" y="4" width="4" height="16"></rect>
+                                    </svg>
+                                    <span id="voicePauseText">Pause</span>
+                                </button>
+
+                                <button type="button" id="voiceMuteBtn" class="voice-btn voice-btn-action" title="Toggle automatic question voice" aria-label="Mute automatic voice">
+                                    <svg id="voiceMuteIcon" class="voice-btn-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                    </svg>
+                                    <span id="voiceMuteText">Mute</span>
+                                </button>
+                            </div>
+
+                            <div class="voice-status-wrap">
+                                <span class="voice-waveform" id="voiceWaveform" aria-hidden="true">
+                                    <span></span><span></span><span></span><span></span>
+                                </span>
+                                <span class="voice-status-badge" id="voiceStatusBadge" role="status" aria-live="polite">AI Voice Ready</span>
+                            </div>
+                        </div>
+
                         <div id="transcriptBox" class="transcript-box" hidden></div>
 
                         <div style="margin-top: 24px;">
